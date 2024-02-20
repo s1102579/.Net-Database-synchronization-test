@@ -31,3 +31,10 @@
 /Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/obj/Debug/net8.0/DatabaseSync.pdb
 /Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/obj/Debug/net8.0/DatabaseSync.genruntimeconfig.cache
 /Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/obj/Debug/net8.0/ref/DatabaseSync.dll
+/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/obj/Debug/net8.0/DatabaseSync.sourcelink.json
+/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/System.Data.SqlClient.dll
+/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/runtimes/win-arm64/native/sni.dll
+/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/runtimes/win-x64/native/sni.dll
+/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/runtimes/win-x86/native/sni.dll
+/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/runtimes/unix/lib/netcoreapp2.1/System.Data.SqlClient.dll
+/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/runtimes/win/lib/netcoreapp2.1/System.Data.SqlClient.dll

@@ -1,44 +1,14 @@
-var builder = WebApplication.CreateBuilder(args);
+// Database logic
+string connectionString = "Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
+var dbHelper = new DbHelper(connectionString);
+dbHelper.CreateLogsTable(); // Create the Logs table if not exists
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+Console.WriteLine("Inserting sample log data...");
+for (int i = 2; i <= 11; i++)
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    string sampleMonth = "January";
+    string sampleLogData = $"{{\"message\":\"Log entry {i}\",\"severity\":\"info\"}}";
+    dbHelper.InsertLogData(sampleMonth, sampleLogData);
 }
 
-app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
-app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+Console.WriteLine("Sample log data inserted.");

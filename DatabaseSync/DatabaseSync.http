@@ -1,0 +1,6 @@
+@DatabaseSync_HostAddress = http://localhost:5193
+
+GET {{DatabaseSync_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

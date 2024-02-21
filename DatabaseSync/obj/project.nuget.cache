@@ -1,14 +1,17 @@
 {
   "version": 2,
-  "dgSpecHash": "yaRrTbkMn7ISPxe9zD7uATBsT2ecCESdusCM19Gifh1C9K1e4ZnrjU6U1kTwjYx8joi4/zP8/c/v6ziOvERB+Q==",
+  "dgSpecHash": "9WeNfR5q0vgI1Wp/jMYeqyPb1xuDkl2imwDRhgryGNbP+HXXwwvM1XRnpb0lQMkNRJ7iWtmbzwI5GjSrKRoaOA==",
   "success": true,
   "projectFilePath": "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/DatabaseSync.csproj",
   "expectedPackageFiles": [
     "/Users/timdekievit/.nuget/packages/microsoft.aspnetcore.openapi/8.0.2/microsoft.aspnetcore.openapi.8.0.2.nupkg.sha512",
     "/Users/timdekievit/.nuget/packages/microsoft.extensions.apidescription.server/6.0.5/microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",
+    "/Users/timdekievit/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "/Users/timdekievit/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
     "/Users/timdekievit/.nuget/packages/microsoft.netcore.platforms/3.1.0/microsoft.netcore.platforms.3.1.0.nupkg.sha512",
     "/Users/timdekievit/.nuget/packages/microsoft.openapi/1.4.3/microsoft.openapi.1.4.3.nupkg.sha512",
     "/Users/timdekievit/.nuget/packages/microsoft.win32.registry/4.7.0/microsoft.win32.registry.4.7.0.nupkg.sha512",
+    "/Users/timdekievit/.nuget/packages/npgsql/8.0.2/npgsql.8.0.2.nupkg.sha512",
     "/Users/timdekievit/.nuget/packages/runtime.native.system.data.sqlclient.sni/4.7.0/runtime.native.system.data.sqlclient.sni.4.7.0.nupkg.sha512",
     "/Users/timdekievit/.nuget/packages/runtime.win-arm64.runtime.native.system.data.sqlclient.sni/4.4.0/runtime.win-arm64.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",
     "/Users/timdekievit/.nuget/packages/runtime.win-x64.runtime.native.system.data.sqlclient.sni/4.4.0/runtime.win-x64.runtime.native.system.data.sqlclient.sni.4.4.0.nupkg.sha512",

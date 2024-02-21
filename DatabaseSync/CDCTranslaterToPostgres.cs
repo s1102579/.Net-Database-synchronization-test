@@ -44,7 +44,7 @@ public class CDCTranslaterToPostgres
         Console.WriteLine($"Columns: {columns}");
         Console.WriteLine($"Values: {values}");
 
-        return $"INSERT INTO public.\"{tableName}\" ({columns}) VALUES ({values});";
+        return $"INSERT INTO public.\"{tableName}\" ({columns}) VALUES ({values}) ON CONFLICT (\"Id\") DO NOTHING;";
     }
 
     public static string TranslateUpdateToPostgreSQL(string tableName, DataRow change)
@@ -56,10 +56,20 @@ public class CDCTranslaterToPostgres
             .Where(c => !c.ColumnName.StartsWith("__$"));
 
         var setClause = string.Join(", ", columnsToUpdate
-            .Select(c => $"\"{c.ColumnName}\" = \'{change[c, DataRowVersion.Current]}\'"));
+            .Select(c =>
+            {
+                var value = change[c, DataRowVersion.Current].ToString();
+                // Check if the column is LogData and the value is an empty string
+                if (c.ColumnName == "LogData" && string.IsNullOrEmpty(value))
+                {
+                    // Set the value to a valid JSON value
+                    value = "null";
+                }
+                return $"\"{c.ColumnName}\" = \'{value}\'";
+            }));
 
-        var whereClause = string.Join(" AND ", change.Table.PrimaryKey.Select(pk =>
-            $"\"{pk.ColumnName}\" = \'{change[pk, DataRowVersion.Original]}\'"));
+        // Use Id as the primary key
+        var whereClause = $"\"Id\" = \'{change["Id", DataRowVersion.Original]}\'";
 
         Console.WriteLine($"SET clause: {setClause}");
         Console.WriteLine($"WHERE clause: {whereClause}");
@@ -71,8 +81,8 @@ public class CDCTranslaterToPostgres
     {
         Console.WriteLine($"Translating delete to PostgreSQL for table {tableName}");
 
-        var whereClause = string.Join(" AND ", change.Table.PrimaryKey.Select(pk =>
-            $"\"{pk.ColumnName}\" = \'{change[pk, DataRowVersion.Original]}\'"));
+        // Use Id as the primary key
+        var whereClause = $"\"Id\" = \'{change["Id", DataRowVersion.Original]}\'";
 
         Console.WriteLine($"WHERE clause: {whereClause}");
 

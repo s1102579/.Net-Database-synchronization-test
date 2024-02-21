@@ -56,19 +56,18 @@ public class DbHelper
 
             // Select changes from CDC tables
             string query = @"
-                SELECT
-                    [__$operation],
-                    [__$start_lsn],
-                    [__$end_lsn],
-                    [__$seqval],
-                    [__$update_mask],
-                    [Id],
-                    [Month],
-                    [LogData],
-                    [__$command_id]
-                FROM
-                    cdc.dbo_Logs_CT";
-     
+            SELECT
+                [__$operation],
+                [__$start_lsn],
+                [__$end_lsn],
+                [__$seqval],
+                [__$update_mask],
+                [Id],
+                [Month],
+                [LogData],
+                [__$command_id]
+            FROM
+                cdc.dbo_Logs_CT";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -77,6 +76,15 @@ public class DbHelper
 
                 // Fill the DataSet with changes from CDC tables
                 adapter.Fill(dataSet);
+
+                // Set the primary key for each DataTable in the DataSet
+                foreach (DataTable table in dataSet.Tables)
+                {
+                    if (table.Columns.Contains("__$start_lsn") && table.Columns.Contains("__$seqval") && table.Columns.Contains("__$operation"))
+                    {
+                        table.PrimaryKey = new DataColumn[] { table.Columns["__$start_lsn"], table.Columns["__$seqval"], table.Columns["__$operation"] };
+                    }
+                }
 
                 return dataSet;
             }

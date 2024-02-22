@@ -14,16 +14,22 @@ var dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres);
 // dbHelper.CreateLogsTable(); // Create the Logs table if not exists
 
 
-// // run 1: insert Log data
-// Console.WriteLine("Inserting sample log data...");
-// for (int i = 2; i <= 11; i++)
-// {
-//     string sampleMonth = "March";
-//     string sampleLogData = $"{{\"message\":\"Log entry {i}\",\"severity\":\"info\"}}";
-//     dbHelper.InsertLogData(sampleMonth, sampleLogData);
-// }
+// run 1: insert Log data
+Console.WriteLine("Inserting sample log data...");
+for (int i = 2; i <= 11; i++)
+{
+    string sampleMonth = "March";
+    string sampleLogData = $"{{\"message\":\"Log entry {i}\",\"severity\":\"info\"}}";
+    dbHelper.InsertLogData(sampleMonth, sampleLogData);
+}
 
-// Console.WriteLine("Sample log data inserted.");
+Console.WriteLine("Sample log data inserted.");
+
+// wait for changes to be captured by the CDC
+Console.WriteLine("Waiting for changes to be captured by the CDC...");
+Thread.Sleep(5000);
+Console.WriteLine("Changes captured.");
+
 
 
 // run 2: check cdc table and apply changes to postgres

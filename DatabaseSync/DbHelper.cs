@@ -84,6 +84,13 @@ public class DbHelper
                     {
                         table.PrimaryKey = new DataColumn[] { table.Columns["__$start_lsn"], table.Columns["__$seqval"], table.Columns["__$operation"] };
                     }
+
+                    // Convert the operation column to an integer
+                    foreach (DataRow row in table.Rows)
+                    {
+                        int operation = Convert.ToInt32(row["__$operation"]);
+                        row["__$operation"] = operation;
+                    }
                 }
 
                 return dataSet;

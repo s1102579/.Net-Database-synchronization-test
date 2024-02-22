@@ -4,17 +4,10 @@ public class CDCTranslaterToPostgres
 {
     public static string TranslateToPostgreSQLQuery(DataRow change, string tableName)
     {
-        // string tableName = change["Month"].ToString(); // This returns the column value now
-
         Console.WriteLine($"Translating change for table {tableName}");
         Console.WriteLine(string.Join(", ", change.ItemArray));
 
-        // convert $__operation to integer 
-        // TODO move this code elsewhere more appropriate
-        int operation = Convert.ToInt32(change["__$operation"]);
-        // Replace the $__operation value in the row with the integer
-        change["__$operation"] = operation;
-        Console.WriteLine($"Operation: {operation}");
+        int operation = (int)change["__$operation"];
         switch (operation)
         {
             case 1: // Delete

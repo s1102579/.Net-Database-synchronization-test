@@ -8,12 +8,12 @@ public class DbHelperPostgresql
 {
     private readonly string connectionString;
 
-    private static CDCTranslaterToPostgres cdcTranslaterToPostgres;
+    // private static CDCTranslaterToPostgres cdcTranslaterToPostgres;
 
     public DbHelperPostgresql(string connectionString)
     {
         this.connectionString = connectionString;
-        cdcTranslaterToPostgres = new CDCTranslaterToPostgres(); // later change to a instance of the actual class
+        // cdcTranslaterToPostgres = new CDCTranslaterToPostgres(); // later change to a instance of the actual class
     }
 
     public void checkIfDatabaseExists()

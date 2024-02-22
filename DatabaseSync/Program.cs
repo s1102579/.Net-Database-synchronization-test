@@ -1,15 +1,16 @@
 // Database logic
 using System.Data;
 
+// Prerequisites: MSSQL database needs to be set up with CDC enabled and have a table called Logs with columns Month and LogData
+// Prerequisites: PostgreSQL database needs to be set up with a table called dbo.Logs with columns Month and LogData
+// Prerequisites: bot databases need to start with the same values in the Logs table. preferably empty
 string connectionStringMSSQL = "Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
 string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;";
 var dbHelper = new DbHelper(connectionStringMSSQL);
 var dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres);
 
 // dbHelperPostgres.removeDatabaseIfExistandCreateANewOneWithSameName(); // Remove the database if exists and create a new one with the same name
-
 // dbHelper.deleteDatabaseAndCreateNewOne(); // Delete the database and create a new one
-
 // dbHelperPostgres.checkIfDatabaseExists(); // Check if the database exists and create it if not
 // dbHelper.CreateLogsTable(); // Create the Logs table if not exists
 

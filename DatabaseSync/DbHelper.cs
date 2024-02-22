@@ -132,49 +132,4 @@ public class DbHelper
         }
     }
 
-
-    // public void deleteDatabaseAndCreateNewOne()
-    // {
-    //     using (var connection = new SqlConnection(connectionString))
-    //     {
-    //         connection.Open();
-
-    //         using (var command = new SqlCommand())
-    //         {
-    //             command.Connection = connection;
-
-    //             // Replace 'YourDatabase' with your actual database name
-    //             var databaseName = "MSSQL_LOG_TEST";
-
-    //             // // Switch to the master database
-    //             // command.CommandText = "USE master;";
-    //             // command.ExecuteNonQuery();
-
-    //             // // Set the database to multi-user mode
-    //             // command.CommandText = $"ALTER DATABASE {databaseName} SET MULTI_USER;";
-    //             // command.ExecuteNonQuery();
-
-    //             // // Create a new database
-    //             // command.CommandText = $"CREATE DATABASE {databaseName};";
-    //             // command.ExecuteNonQuery();
-
-    //             // Use the new database
-    //             command.CommandText = $"USE {databaseName};";
-    //             command.ExecuteNonQuery();
-
-    //             // Enable CDC
-    //             command.CommandText = "EXEC sys.sp_cdc_enable_db;";
-    //             command.ExecuteNonQuery();
-
-    //             CreateLogsTable();
-
-    //             // Enable CDC on a table
-    //             // Replace 'YourTable' with your actual table name
-    //             var tableName = "Logs";
-    //             command.CommandText = $"EXEC sys.sp_cdc_enable_table @source_schema = N'dbo', @source_name = N'{tableName}', @role_name = NULL, @supports_net_changes = 1;";
-    //             command.ExecuteNonQuery();
-    //         }
-    //     }
-    // }
-
 }

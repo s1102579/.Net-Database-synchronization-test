@@ -16,11 +16,11 @@ public class DbHelperTests
         _dbHelper = new DbHelper(_testConnectionString);
     }
 
-    private void emptyDatabase()
+    private void EmptyDatabase()
     {
-        _dbHelper.emptyDatabaseTableDboLogs();
+        _dbHelper.EmptyDatabaseTableDboLogs();
         Thread.Sleep(4000);
-        _dbHelper.emptyDatabaseCDCTableDboLogs();
+        _dbHelper.EmptyDatabaseCDCTableDboLogs();
         Thread.Sleep(4000);
     }
 
@@ -29,7 +29,7 @@ public class DbHelperTests
     public void TestInsertLogData()
     {
         // Arrange
-        this.emptyDatabase();
+        this.EmptyDatabase();
         string sampleMonth = "March";
         string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
 
@@ -67,7 +67,7 @@ public class DbHelperTests
         var dbHelper = new DbHelper(_testConnectionString);
 
         // Act
-        dbHelper.emptyDatabaseTableDboLogs();
+        dbHelper.EmptyDatabaseTableDboLogs();
         Thread.Sleep(4000);
 
         // Assert
@@ -90,7 +90,7 @@ public class DbHelperTests
         var dbHelper = new DbHelper(_testConnectionString);
 
         // Act
-        dbHelper.emptyDatabaseCDCTableDboLogs();
+        dbHelper.EmptyDatabaseCDCTableDboLogs();
         Thread.Sleep(4000);
 
         // Assert
@@ -110,7 +110,7 @@ public class DbHelperTests
     public void TestQueryCDCTables()
     {
         // Arrange
-        this.emptyDatabase();
+        this.EmptyDatabase();
         string sampleMonth = "March";
         string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
         _dbHelper.InsertLogData(sampleMonth, sampleLogData);

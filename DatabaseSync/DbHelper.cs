@@ -98,7 +98,7 @@ public class DbHelper
             }
         }
     }
-    public void emptyDatabaseTableDboLogs()
+    public void EmptyDatabaseTableDboLogs()
     {
         using (var connection = new SqlConnection(connectionString))
         {
@@ -115,7 +115,7 @@ public class DbHelper
         }
     }
 
-    public void emptyDatabaseCDCTableDboLogs() 
+    public void EmptyDatabaseCDCTableDboLogs() 
     {
         using (var connection = new SqlConnection(connectionString))
         {

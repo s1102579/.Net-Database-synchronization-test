@@ -16,7 +16,7 @@ public class DbHelperPostgresql
         // cdcTranslaterToPostgres = new CDCTranslaterToPostgres(); // later change to a instance of the actual class
     }
 
-    public void checkIfDatabaseExists()
+    public void CheckIfDatabaseExists()
     {
         using (var connection = new NpgsqlConnection(connectionString))
         {
@@ -40,6 +40,21 @@ public class DbHelperPostgresql
                         createDatabaseCommand.ExecuteNonQuery();
                     }
                 }
+            }
+        }
+    }
+
+    public void EmptyDatabaseTableDboLogs()
+    {
+        string tableName = "dbo.Logs";
+        string commandText = $"DELETE FROM \"{tableName}\";";
+        using (var connection = new NpgsqlConnection(connectionString))
+        {
+            connection.Open();
+
+            using (var command = new NpgsqlCommand(commandText, connection))
+            {
+                command.ExecuteNonQuery();
             }
         }
     }
@@ -144,7 +159,8 @@ public class DbHelperPostgresql
                 Console.WriteLine($"PostgreSQL query: {postgresqlQuery}");
 
                 // Execute the query on the PostgreSQL database
-                if (postgresqlQuery != null) {
+                if (postgresqlQuery != null)
+                {
                     ExecuteQueryOnPostgreSQL(postgresqlQuery, postgresqlConnectionString);
                 }
             }

@@ -114,7 +114,7 @@ public class DbHelperTests
         string sampleMonth = "March";
         string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
         _dbHelper.InsertLogData(sampleMonth, sampleLogData);
-        Thread.Sleep(10000);
+        Thread.Sleep(20000); // find out how long it takes for the CDC table to be updated, and see if it's possible to reduce the time
 
         // Act
         var result = DbHelper.QueryCDCTables(_testConnectionString);

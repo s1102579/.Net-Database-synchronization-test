@@ -51,7 +51,7 @@ public class CDCTranslaterToPostgres
         var setClause = string.Join(", ", columnsToUpdate
             .Select(c =>
             {
-                var value = change[c, DataRowVersion.Current].ToString();
+                var value = change[c].ToString();
                 // Check if the column is LogData and the value is an empty string
                 if (c.ColumnName == "LogData" && string.IsNullOrEmpty(value))
                 {
@@ -62,7 +62,7 @@ public class CDCTranslaterToPostgres
             }));
 
         // Use Id as the primary key
-        var whereClause = $"\"Id\" = \'{change["Id", DataRowVersion.Original]}\'";
+        var whereClause = $"\"Id\" = \'{change["Id"]}'";
 
         Console.WriteLine($"SET clause: {setClause}");
         Console.WriteLine($"WHERE clause: {whereClause}");
@@ -75,7 +75,7 @@ public class CDCTranslaterToPostgres
         Console.WriteLine($"Translating delete to PostgreSQL for table {tableName}");
 
         // Use Id as the primary key
-        var whereClause = $"\"Id\" = \'{change["Id", DataRowVersion.Original]}\'";
+        var whereClause = $"\"Id\" = \'{change["Id"]}'";
 
         Console.WriteLine($"WHERE clause: {whereClause}");
 

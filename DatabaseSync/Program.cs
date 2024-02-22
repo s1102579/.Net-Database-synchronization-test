@@ -5,9 +5,16 @@ string connectionStringMSSQL = "Server=localhost,1433;Database=MSSQL_LOG_TEST;Us
 string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;";
 var dbHelper = new DbHelper(connectionStringMSSQL);
 var dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres);
-dbHelperPostgres.checkIfDatabaseExists(); // Check if the database exists and create it if not
-dbHelper.CreateLogsTable(); // Create the Logs table if not exists
 
+// dbHelperPostgres.removeDatabaseIfExistandCreateANewOneWithSameName(); // Remove the database if exists and create a new one with the same name
+
+// dbHelper.deleteDatabaseAndCreateNewOne(); // Delete the database and create a new one
+
+// dbHelperPostgres.checkIfDatabaseExists(); // Check if the database exists and create it if not
+// dbHelper.CreateLogsTable(); // Create the Logs table if not exists
+
+
+// // run 1: insert Log data
 // Console.WriteLine("Inserting sample log data...");
 // for (int i = 2; i <= 11; i++)
 // {
@@ -18,6 +25,8 @@ dbHelper.CreateLogsTable(); // Create the Logs table if not exists
 
 // Console.WriteLine("Sample log data inserted.");
 
+
+// run 2: check cdc table and apply changes to postgres
 var dataChanges = DbHelper.QueryCDCTables(connectionStringMSSQL);
 Console.WriteLine("Data changes:");
 foreach (DataTable table in dataChanges.Tables)
@@ -30,10 +39,6 @@ foreach (DataTable table in dataChanges.Tables)
 
     foreach (DataRow row in table.Rows)
     {
-        // int operation = Convert.ToInt32(row["__$operation"]);
-        // // Replace the $__operation value in the row with the integer
-        // row["__$operation"] = operation;
-        // Console.WriteLine($"Operation: {operation}");
         Console.WriteLine(string.Join(", ", row.ItemArray));
     }
 }

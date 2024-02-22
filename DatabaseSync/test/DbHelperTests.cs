@@ -19,7 +19,9 @@ public class DbHelperTests
     private void emptyDatabase()
     {
         _dbHelper.emptyDatabaseTableDboLogs();
+        Thread.Sleep(4000);
         _dbHelper.emptyDatabaseCDCTableDboLogs();
+        Thread.Sleep(4000);
     }
 
 
@@ -102,5 +104,40 @@ public class DbHelperTests
             }
             connection.Close();
         }
+    }
+
+    [Fact]
+    public void TestQueryCDCTables()
+    {
+        // Arrange
+        this.emptyDatabase();
+        string sampleMonth = "March";
+        string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
+        _dbHelper.InsertLogData(sampleMonth, sampleLogData);
+        Thread.Sleep(10000);
+
+        // Act
+        var result = DbHelper.QueryCDCTables(_testConnectionString);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Single(result.Tables);
+        Assert.Equal("dbo.Logs", result.Tables[0].TableName); // already named the table for the postgreSQL database
+        Assert.Equal(9, result.Tables[0].Columns.Count);
+        Assert.Equal("__$operation", result.Tables[0].Columns[0].ColumnName);
+        Assert.Equal("__$start_lsn", result.Tables[0].Columns[1].ColumnName);
+        Assert.Equal("__$end_lsn", result.Tables[0].Columns[2].ColumnName);
+        Assert.Equal("__$seqval", result.Tables[0].Columns[3].ColumnName);
+        Assert.Equal("__$update_mask", result.Tables[0].Columns[4].ColumnName);
+        Assert.Equal("Id", result.Tables[0].Columns[5].ColumnName);
+        Assert.Equal("Month", result.Tables[0].Columns[6].ColumnName);
+        Assert.Equal("LogData", result.Tables[0].Columns[7].ColumnName);
+        Assert.Equal("__$command_id", result.Tables[0].Columns[8].ColumnName);
+
+        Assert.Equal(1, result.Tables[0].Rows.Count); // assuming that only one row is added
+        var row = result.Tables[0].Rows[0];
+        Assert.Equal(2, row["__$operation"]); //check if the operation is an insert
+        Assert.Equal(sampleMonth, row["Month"]);
+        Assert.Equal(sampleLogData, row["LogData"]);
     }
 }

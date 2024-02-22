@@ -37,7 +37,6 @@ var dataChanges = DbHelper.QueryCDCTables(connectionStringMSSQL);
 Console.WriteLine("Data changes:");
 foreach (DataTable table in dataChanges.Tables)
 {
-    table.TableName = "dbo.Logs"; // TODO temporary hardcoded, find out why the table name is "Table" and not "dbo.Logs
     Console.WriteLine($"Table: {table.TableName}");
 
     // Print column names

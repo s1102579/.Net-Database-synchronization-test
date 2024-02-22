@@ -80,6 +80,7 @@ public class DbHelper
                 // Set the primary key for each DataTable in the DataSet
                 foreach (DataTable table in dataSet.Tables)
                 {
+                    table.TableName = "dbo.Logs"; // TODO temporary hardcoded, find out why the table name is "Table" and not "dbo.Logs
                     if (table.Columns.Contains("__$start_lsn") && table.Columns.Contains("__$seqval") && table.Columns.Contains("__$operation"))
                     {
                         table.PrimaryKey = new DataColumn[] { table.Columns["__$start_lsn"], table.Columns["__$seqval"], table.Columns["__$operation"] };

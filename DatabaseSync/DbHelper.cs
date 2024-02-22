@@ -83,7 +83,14 @@ public class DbHelper
                     table.TableName = "dbo.Logs"; // TODO temporary hardcoded, find out why the table name is "Table" and not "dbo.Logs
                     if (table.Columns.Contains("__$start_lsn") && table.Columns.Contains("__$seqval") && table.Columns.Contains("__$operation"))
                     {
-                        table.PrimaryKey = new DataColumn[] { table.Columns["__$start_lsn"], table.Columns["__$seqval"], table.Columns["__$operation"] };
+                        DataColumn? startLsnColumn = table.Columns["__$start_lsn"];
+                        DataColumn? seqvalColumn = table.Columns["__$seqval"];
+                        DataColumn? operationColumn = table.Columns["__$operation"];
+
+                        if (startLsnColumn != null && seqvalColumn != null && operationColumn != null)
+                        {
+                            table.PrimaryKey = new DataColumn[] { startLsnColumn, seqvalColumn, operationColumn };
+                        }
                     }
 
                     // Convert the operation column to an integer
@@ -107,7 +114,6 @@ public class DbHelper
             using (var command = new SqlCommand())
             {
                 command.Connection = connection;
-                var databaseName = "MSSQL_LOG_TEST";
                 
                 command.CommandText = "DELETE FROM dbo.Logs";
                 command.ExecuteNonQuery();
@@ -124,7 +130,6 @@ public class DbHelper
             using (var command = new SqlCommand())
             {
                 command.Connection = connection;
-                var databaseName = "MSSQL_LOG_TEST";
                 
                 command.CommandText = "DELETE FROM cdc.dbo_Logs_CT";
                 command.ExecuteNonQuery();

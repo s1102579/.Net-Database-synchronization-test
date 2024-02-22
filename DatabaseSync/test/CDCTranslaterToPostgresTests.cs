@@ -24,7 +24,6 @@ public class CDCTranslaterToPostgresTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("INSERT INTO public.\"TestTable\" (\"Id\", \"Name\") VALUES ('1', 'Test') ON CONFLICT (\"Id\") DO NOTHING;", result);
-        // Add more assertions based on your expected result
     }
 
     [Fact]
@@ -47,7 +46,6 @@ public class CDCTranslaterToPostgresTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("UPDATE public.\"TestTable\" SET \"Id\" = '1', \"Name\" = 'Test' WHERE \"Id\" = '1';", result);
-        // Add more assertions based on your expected result
     }
 
     [Fact]
@@ -68,6 +66,5 @@ public class CDCTranslaterToPostgresTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("DELETE FROM public.\"TestTable\" WHERE \"Id\" = '1';", result);
-        // Add more assertions based on your expected result
     }
 }

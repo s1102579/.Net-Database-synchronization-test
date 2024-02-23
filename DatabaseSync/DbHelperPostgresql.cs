@@ -41,6 +41,7 @@ public class DbHelperPostgresql
                     }
                 }
             }
+            connection.Close();
         }
     }
 
@@ -56,6 +57,8 @@ public class DbHelperPostgresql
             {
                 command.ExecuteNonQuery();
             }
+
+            connection.Close();
         }
     }
 
@@ -83,6 +86,7 @@ public class DbHelperPostgresql
                     }
                 }
             }
+            connection.Close();
         }
     }
 
@@ -98,6 +102,7 @@ public class DbHelperPostgresql
                 {
                     command.ExecuteNonQuery();
                 }
+                connection.Close();
             }
 
             Console.WriteLine($"Query executed on PostgreSQL: {query}");

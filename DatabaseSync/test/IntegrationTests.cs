@@ -43,9 +43,9 @@ public class IntegrationTests : IDisposable
     private void EmptyDatabase()
     {
         _dbHelperMSSQL.EmptyDatabaseTableDboLogs();
-        Thread.Sleep(4000);
+        Thread.Sleep(10000);
         _dbHelperMSSQL.EmptyDatabaseCDCTableDboLogs();
-        Thread.Sleep(4000);
+        Thread.Sleep(10000);
         _dbHelperPostgres.EmptyDatabaseTableDboLogs();
     }
 
@@ -113,7 +113,7 @@ public class IntegrationTests : IDisposable
     }
 
     [Fact, TestPriority(3)]
-    public void TestQueryCDCTables()
+    public void TestQueryCDCTables() // sometimes fails
     {
         // Act
         Thread.Sleep(1000);
@@ -143,7 +143,7 @@ public class IntegrationTests : IDisposable
     }
 
     [Fact, TestPriority(4)]
-    public void TestSyncDataToPostgres()
+    public void TestSyncDataToPostgresInsert()
     {
         // Act
         Thread.Sleep(4000);
@@ -168,4 +168,43 @@ public class IntegrationTests : IDisposable
             connection.Close();
         }
     }
+
+    // [Fact, TestPriority(5)]
+    // public void TestUpdateLogDataInMSSQL() // will fail for now
+    // {
+    //     // Arrange
+    //     string sampleMonth = "June";
+    //     string sampleLogData = "{\"message\":\"Log entry 2\",\"severity\":\"info\"}";
+    //     this.EmptyDatabase();
+    //     Thread.Sleep(4000);
+    //     _dbHelperMSSQL.InsertLogData(sampleMonth, "{\"message\":\"Log entry 1\",\"severity\":\"info\"}");
+    //     Thread.Sleep(4000);
+
+    //     // Act
+    //     _dbHelperMSSQL.UpdateLogData(sampleMonth, sampleLogData, fixture.DataChanges.Tables[0].Columns[5].ColumnName);
+
+    //     // Assert
+    //     using (var connection = new SqlConnection(_connectionStringMSSQL))
+    //     {
+    //         connection.Open();
+    //         using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Id = @Id", connection))
+    //         {
+    //             command.Parameters.AddWithValue("@Id", int.Parse(fixture.DataChanges.Tables[0].Columns[5].ColumnName));
+
+    //             using (var reader = command.ExecuteReader())
+    //             {
+    //                 Assert.True(reader.Read(), "No data found with the provided month and log data");
+
+    //                 var id = reader["Id"].ToString();
+    //                 var month = reader["Month"].ToString();
+    //                 var logData = reader["LogData"].ToString();
+
+    //                 Assert.Equal(fixture.DataChanges.Tables[0].Columns[5].ColumnName, id);
+    //                 Assert.Equal(sampleMonth, month);
+    //                 Assert.Equal(sampleLogData, logData);
+    //             }
+    //         }
+    //         connection.Close();
+    //     }
+    // }
 }

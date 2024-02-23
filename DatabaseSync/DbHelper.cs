@@ -45,6 +45,29 @@ public class DbHelper
 
                 command.ExecuteNonQuery();
             }
+            connection.Close();
+        }
+    }
+
+    public void UpdateLogData(string month, string logData, string Id)
+    {
+        using (var connection = new SqlConnection(connectionString))
+        {
+            connection.Open();
+
+            // Update a log record in the table
+            using (var command = new SqlCommand(
+                "UPDATE Logs SET LogData = @LogData WHERE Month = @Month AND Id = @Id",
+                connection))
+            {
+                command.Parameters.AddWithValue("@Month", month);
+                command.Parameters.AddWithValue("@LogData", logData);
+                command.Parameters.AddWithValue("@Id", Id);
+
+                command.ExecuteNonQuery();
+            }
+
+            connection.Close();
         }
     }
 
@@ -100,6 +123,7 @@ public class DbHelper
                         row["__$operation"] = operation;
                     }
                 }
+                connection.Close();
 
                 return dataSet;
             }
@@ -118,6 +142,8 @@ public class DbHelper
                 command.CommandText = "DELETE FROM dbo.Logs";
                 command.ExecuteNonQuery();
             }
+
+            connection.Close();
         }
     }
 
@@ -134,6 +160,8 @@ public class DbHelper
                 command.CommandText = "DELETE FROM cdc.dbo_Logs_CT";
                 command.ExecuteNonQuery();
             }
+
+            connection.Close();
         }
     }
 

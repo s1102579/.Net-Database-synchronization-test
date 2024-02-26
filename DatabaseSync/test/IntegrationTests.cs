@@ -55,7 +55,6 @@ public class IntegrationTests : IDisposable
         string sampleMonth = "May";
         string sampleLogData = "{\"message\":\"Log entry 1\",\"severity\":\"info\"}";
         await this.EmptyDatabaseAsync();
-        // Thread.Sleep(4000);
 
         // Act
         await _dbHelperMSSQL.InsertLogDataAsync(sampleMonth, sampleLogData);
@@ -112,7 +111,7 @@ public class IntegrationTests : IDisposable
     }
 
     [Fact, TestPriority(3)]
-    public async void TestQueryCDCTables() // sometimes fails
+    public async void TestQueryCDCTables()
     {
         // Act
         fixture.DataChanges = await DbHelper.QueryCDCTablesAsync(_connectionStringMSSQL);
@@ -143,9 +142,7 @@ public class IntegrationTests : IDisposable
     public async void TestSyncDataToPostgresInsert()
     {
         // Act
-        // Thread.Sleep(4000);
         await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
-        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_connectionStringPostgres))
@@ -166,42 +163,38 @@ public class IntegrationTests : IDisposable
         }
     }
 
-    // [Fact, TestPriority(5)]
-    // public void TestUpdateLogDataInMSSQL() // will fail for now
-    // {
-    //     // Arrange
-    //     string sampleMonth = "June";
-    //     string sampleLogData = "{\"message\":\"Log entry 2\",\"severity\":\"info\"}";
-    //     this.EmptyDatabase();
-    //     Thread.Sleep(4000);
-    //     _dbHelperMSSQL.InsertLogData(sampleMonth, "{\"message\":\"Log entry 1\",\"severity\":\"info\"}");
-    //     Thread.Sleep(4000);
+    [Fact, TestPriority(5)]
+    public async Task TestUpdateLogDataInMSSQLAsync() // will fail for now
+    {
+        // Arrange
+        string sampleMonth = "June";
+        string sampleLogData = "{\"message\":\"Log entry 2\",\"severity\":\"info\"}";
 
-    //     // Act
-    //     _dbHelperMSSQL.UpdateLogDataAsync(sampleMonth, sampleLogData, fixture.DataChanges.Tables[0].Columns[5].ColumnName);
+        // Act
+        await _dbHelperMSSQL.UpdateLogDataAsync(sampleMonth, sampleLogData, fixture.DataChanges.Tables[0].Rows[0]["Id"].ToString());
 
-    //     // Assert
-    //     using (var connection = new SqlConnection(_connectionStringMSSQL))
-    //     {
-    //         connection.Open();
-    //         using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Id = @Id", connection))
-    //         {
-    //             command.Parameters.AddWithValue("@Id", int.Parse(fixture.DataChanges.Tables[0].Columns[5].ColumnName));
+        // Assert
+        using (var connection = new SqlConnection(_connectionStringMSSQL))
+        {
+            await connection.OpenAsync();
+            using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Id = @Id", connection))
+            {
+                command.Parameters.AddWithValue("@Id", fixture.DataChanges.Tables[0].Rows[0]["Id"]);
 
-    //             using (var reader = command.ExecuteReader())
-    //             {
-    //                 Assert.True(reader.Read(), "No data found with the provided month and log data");
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    Assert.True(reader.Read(), "No data found with the provided month and log data");
 
-    //                 var id = reader["Id"].ToString();
-    //                 var month = reader["Month"].ToString();
-    //                 var logData = reader["LogData"].ToString();
+                    var id = reader["Id"].ToString();
+                    var month = reader["Month"].ToString();
+                    var logData = reader["LogData"].ToString();
 
-    //                 Assert.Equal(fixture.DataChanges.Tables[0].Columns[5].ColumnName, id);
-    //                 Assert.Equal(sampleMonth, month);
-    //                 Assert.Equal(sampleLogData, logData);
-    //             }
-    //         }
-    //         connection.Close();
-    //     }
-    // }
+                    Assert.Equal(fixture.DataChanges.Tables[0].Rows[0]["Id"].ToString(), id);
+                    Assert.Equal(sampleMonth, month);
+                    Assert.Equal(sampleLogData, logData);
+                }
+            }
+            connection.Close();
+        }
+    }
 }

@@ -57,7 +57,7 @@ public class DbHelper
 
             // Update a log record in the table
             using (var command = new SqlCommand(
-                "UPDATE Logs SET LogData = @LogData WHERE Month = @Month AND Id = @Id",
+                "UPDATE Logs SET LogData = @LogData, Month = @Month WHERE Id = @Id",
                 connection))
             {
                 command.Parameters.AddWithValue("@Month", month);
@@ -128,6 +128,8 @@ public class DbHelper
                         }
                     }
                     while (!reader.IsClosed);
+
+                    connection.Close();
 
                     return dataSet;
                 }

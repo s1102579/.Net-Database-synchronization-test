@@ -68,7 +68,6 @@ public class DbHelperPostgresqlTests
     {
         // Arrange
         await this.EmptyDatabaseAsync();
-        // Thread.Sleep(4000);
 
         var dataSet = new DataSet();
         var dataTable = new DataTable("dbo.Logs");
@@ -84,7 +83,6 @@ public class DbHelperPostgresqlTests
 
         // Act
         await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(dataSet, _testConnectionString);
-        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_testConnectionString))
@@ -111,9 +109,7 @@ public class DbHelperPostgresqlTests
     {
         // Arrange
         await this.EmptyDatabaseAsync();
-        // Thread.Sleep(4000);
         await this.AddRowToDboLogs();
-        // Thread.Sleep(4000);
 
         var dataSet = new DataSet();
         var dataTable = new DataTable("dbo.Logs");
@@ -129,7 +125,6 @@ public class DbHelperPostgresqlTests
 
         // Act
         await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(dataSet, _testConnectionString);
-        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_testConnectionString))
@@ -156,9 +151,7 @@ public class DbHelperPostgresqlTests
     {
         // Arrange
         await this.EmptyDatabaseAsync();
-        // Thread.Sleep(4000);
         await this.AddRowToDboLogs();
-        // Thread.Sleep(4000);
 
         var dataSet = new DataSet();
         var dataTable = new DataTable("dbo.Logs");
@@ -174,7 +167,6 @@ public class DbHelperPostgresqlTests
 
         // Act
         await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(dataSet, _testConnectionString);
-        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_testConnectionString))

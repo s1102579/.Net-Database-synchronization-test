@@ -68,7 +68,6 @@ public class DbHelperTests
         // Act
         await dbHelper.InsertLogDataAsync("March", "Log entry");
         await dbHelper.EmptyDatabaseTableDboLogsAsync();
-        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new SqlConnection(_testConnectionString))
@@ -93,18 +92,13 @@ public class DbHelperTests
         await dbHelper.InsertLogDataAsync("March", "Log entry");
         Thread.Sleep(5000); // pollinginterval of the CDC is 5 seconds
         await dbHelper.EmptyDatabaseCDCTableDboLogsAsync();
-        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new SqlConnection(_testConnectionString))
         {
             await connection.OpenAsync();
-            // using (var command = new SqlCommand("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'dbo_Logs_CT'", connection))
             using (var command = new SqlCommand("SELECT COUNT(*) FROM cdc.dbo_Logs_CT", connection))
             {
-                // var result = await command.ExecuteScalarAsync();
-                // Assert.Null(result);
-
                 var result = (int)await command.ExecuteScalarAsync();
                 Assert.Equal(0, result);
             }

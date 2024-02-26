@@ -144,7 +144,7 @@ public class IntegrationTests : IDisposable
     {
         // Act
         Thread.Sleep(4000);
-        DbHelperPostgresql.ApplyChangesToPostgreSQL(fixture.DataChanges, _connectionStringPostgres);
+        DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
         Thread.Sleep(4000);
 
         // Assert

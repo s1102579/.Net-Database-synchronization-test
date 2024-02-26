@@ -16,11 +16,11 @@ public class DbHelperPostgresql
         // cdcTranslaterToPostgres = new CDCTranslaterToPostgres(); // later change to a instance of the actual class
     }
 
-    public void CheckIfDatabaseExists()
+    public async void CheckIfDatabaseExists()
     {
         using (var connection = new NpgsqlConnection(connectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
 
             Console.WriteLine("Checking if the database exists...");
 
@@ -29,7 +29,7 @@ public class DbHelperPostgresql
                 "SELECT 1 FROM pg_database WHERE datname = 'postgres_sync_database'",
                 connection))
             {
-                var databaseExists = checkDatabaseCommand.ExecuteScalar();
+                var databaseExists = await checkDatabaseCommand.ExecuteScalarAsync();
                 if (databaseExists == null)
                 {
                     Console.WriteLine("Database does not exist. Creating...");
@@ -37,7 +37,7 @@ public class DbHelperPostgresql
                         "CREATE DATABASE postgres_sync_database",
                         connection))
                     {
-                        createDatabaseCommand.ExecuteNonQuery();
+                        await createDatabaseCommand.ExecuteNonQueryAsync();
                     }
                 }
             }
@@ -55,7 +55,7 @@ public class DbHelperPostgresql
 
             using (var command = new NpgsqlCommand(commandText, connection))
             {
-                command.ExecuteNonQuery();
+                await command.ExecuteNonQueryAsync();
             }
 
             connection.Close();
@@ -63,18 +63,18 @@ public class DbHelperPostgresql
     }
 
 
-    public void CreateLogsTable()
+    public async Task CreateLogsTableAsync()
     {
         using (var connection = new NpgsqlConnection(connectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
 
             // Check if the Logs table already exists
             using (var checkTableCommand = new NpgsqlCommand(
                 "SELECT 1 FROM pg_tables WHERE tablename = 'Logs'",
                 connection))
             {
-                var tableExists = checkTableCommand.ExecuteScalar();
+                var tableExists = await checkTableCommand.ExecuteScalarAsync();
                 if (tableExists == null)
                 {
                     Console.WriteLine("Table does not exist. Creating...");
@@ -82,7 +82,7 @@ public class DbHelperPostgresql
                         "CREATE TABLE Logs (Id SERIAL PRIMARY KEY, Month VARCHAR(50), LogData JSONB)",
                         connection))
                     {
-                        createTableCommand.ExecuteNonQuery();
+                        await createTableCommand.ExecuteNonQueryAsync();
                     }
                 }
             }
@@ -90,17 +90,17 @@ public class DbHelperPostgresql
         }
     }
 
-    static void ExecuteQueryOnPostgreSQL(string query, string postgresqlConnectionString)
+    static async Task ExecuteQueryOnPostgreSQL(string query, string postgresqlConnectionString)
     {
         try
         {
             using (var connection = new NpgsqlConnection(postgresqlConnectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
 
                 using (var command = new NpgsqlCommand(query, connection))
                 {
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
                 }
                 connection.Close();
             }
@@ -115,7 +115,7 @@ public class DbHelperPostgresql
 
 
 
-    public static void ApplyChangesToPostgreSQL(DataSet changes, string postgresqlConnectionString)
+    public static async Task ApplyChangesToPostgreSQLAsync(DataSet changes, string postgresqlConnectionString)
     {
         // Iterate through the DataTables inside the DataSet
         foreach (DataTable table in changes.Tables)
@@ -131,7 +131,7 @@ public class DbHelperPostgresql
                 // Execute the query on the PostgreSQL database
                 if (postgresqlQuery != null)
                 {
-                    ExecuteQueryOnPostgreSQL(postgresqlQuery, postgresqlConnectionString);
+                    await ExecuteQueryOnPostgreSQL(postgresqlQuery, postgresqlConnectionString);
                 }
             }
         }

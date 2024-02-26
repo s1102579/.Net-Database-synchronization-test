@@ -14,47 +14,47 @@ public class DbHelperPostgresqlTests
         _dbHelperPostgresql = new DbHelperPostgresql(_testConnectionString);
     }
 
-    private void EmptyDatabase()
+    private async Task EmptyDatabaseAsync()
     {
-        _dbHelperPostgresql.EmptyDatabaseTableDboLogsAsync();
-        Thread.Sleep(4000);
+        await _dbHelperPostgresql.EmptyDatabaseTableDboLogsAsync();
+        // Thread.Sleep(4000);
     }
 
-    private void AddRowToDboLogs()
+    private async Task AddRowToDboLogs()
     {
         string tableName = "dbo.Logs";
         using (var connection = new NpgsqlConnection(_testConnectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
             // using var command = new NpgsqlCommand($"INSERT INTO \"{tableName}\" (\"Month\", \"LogData\") VALUES ('March', '{{\"message\":\"Log entry\",\"severity\":\"info\"}}')", connection);
             using var command = new NpgsqlCommand($"INSERT INTO \"{tableName}\" (\"Id\", \"Month\", \"LogData\") VALUES (1, 'March', '{{\"message\":\"Log entry\",\"severity\":\"info\"}}')", connection);
-            command.ExecuteNonQuery();
+            await command.ExecuteNonQueryAsync();
             connection.Close();
         }
     }
 
     [Fact]
-    public void TestEmptyDatabaseTableDboLogs()
+    public async Task TestEmptyDatabaseTableDboLogsAsync()
     {
         // Arrange
-        this.EmptyDatabase();
-        Thread.Sleep(4000);
-        this.AddRowToDboLogs();
-        Thread.Sleep(4000);
+        await this.EmptyDatabaseAsync();
+        // Thread.Sleep(4000);
+        await this.AddRowToDboLogs();
+        // Thread.Sleep(4000);
 
         // Act
-        _dbHelperPostgresql.EmptyDatabaseTableDboLogsAsync();
-        Thread.Sleep(4000);
+        await _dbHelperPostgresql.EmptyDatabaseTableDboLogsAsync();
+        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_testConnectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
             string tableName = "dbo.Logs";
             string commandText = $"SELECT * FROM \"{tableName}\";";
             using (var command = new NpgsqlCommand(commandText, connection))
             {
-                using (var reader = command.ExecuteReader())
+                using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.False(reader.Read(), "Data found in the table dbo.Logs");
                 }
@@ -64,11 +64,11 @@ public class DbHelperPostgresqlTests
     }
 
     [Fact]
-    public void TestApplyChangesToPostgreSQLInsert()
+    public async void TestApplyChangesToPostgreSQLInsert()
     {
         // Arrange
-        this.EmptyDatabase();
-        Thread.Sleep(4000);
+        await this.EmptyDatabaseAsync();
+        // Thread.Sleep(4000);
 
         var dataSet = new DataSet();
         var dataTable = new DataTable("dbo.Logs");
@@ -83,8 +83,8 @@ public class DbHelperPostgresqlTests
         dataSet.Tables.Add(dataTable);
 
         // Act
-        DbHelperPostgresql.ApplyChangesToPostgreSQL(dataSet, _testConnectionString);
-        Thread.Sleep(4000);
+        await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(dataSet, _testConnectionString);
+        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_testConnectionString))
@@ -94,7 +94,7 @@ public class DbHelperPostgresqlTests
             string commandText = $"SELECT * FROM \"{tableName}\";";
             using (var command = new NpgsqlCommand(commandText, connection))
             {
-                using (var reader = command.ExecuteReader())
+                using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
                     Assert.Equal(1, reader.GetInt32(0));
@@ -107,13 +107,13 @@ public class DbHelperPostgresqlTests
     }
 
     [Fact]
-    public void TestApplyChangesToPostgreSQLUpdate()
+    public async Task TestApplyChangesToPostgreSQLUpdateAsync()
     {
         // Arrange
-        this.EmptyDatabase();
-        Thread.Sleep(4000);
-        this.AddRowToDboLogs();
-        Thread.Sleep(4000);
+        await this.EmptyDatabaseAsync();
+        // Thread.Sleep(4000);
+        await this.AddRowToDboLogs();
+        // Thread.Sleep(4000);
 
         var dataSet = new DataSet();
         var dataTable = new DataTable("dbo.Logs");
@@ -128,18 +128,18 @@ public class DbHelperPostgresqlTests
         dataSet.Tables.Add(dataTable);
 
         // Act
-        DbHelperPostgresql.ApplyChangesToPostgreSQL(dataSet, _testConnectionString);
+        await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(dataSet, _testConnectionString);
         Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_testConnectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
             string tableName = "dbo.Logs";
             string commandText = $"SELECT * FROM \"{tableName}\";";
             using (var command = new NpgsqlCommand(commandText, connection))
             {
-                using (var reader = command.ExecuteReader())
+                using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
                     Assert.Equal(1, reader.GetInt32(0));
@@ -152,13 +152,13 @@ public class DbHelperPostgresqlTests
     }
 
     [Fact]
-    public void TestApplyChangesToPostgreSQLDelete()
+    public async void TestApplyChangesToPostgreSQLDelete()
     {
         // Arrange
-        this.EmptyDatabase();
-        Thread.Sleep(4000);
-        this.AddRowToDboLogs();
-        Thread.Sleep(4000);
+        await this.EmptyDatabaseAsync();
+        // Thread.Sleep(4000);
+        await this.AddRowToDboLogs();
+        // Thread.Sleep(4000);
 
         var dataSet = new DataSet();
         var dataTable = new DataTable("dbo.Logs");
@@ -173,18 +173,18 @@ public class DbHelperPostgresqlTests
         dataSet.Tables.Add(dataTable);
 
         // Act
-        DbHelperPostgresql.ApplyChangesToPostgreSQL(dataSet, _testConnectionString);
-        Thread.Sleep(4000);
+        await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(dataSet, _testConnectionString);
+        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_testConnectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
             string tableName = "dbo.Logs";
             string commandText = $"SELECT * FROM \"{tableName}\";";
             using (var command = new NpgsqlCommand(commandText, connection))
             {
-                using (var reader = command.ExecuteReader())
+                using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.False(reader.Read(), "Data found in the table dbo.Logs");
                 }

@@ -49,11 +49,11 @@ public class DbHelper
         }
     }
 
-    public void UpdateLogData(string month, string logData, string Id)
+    public async Task UpdateLogDataAsync(string month, string logData, string Id)
     {
         using (var connection = new SqlConnection(connectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
 
             // Update a log record in the table
             using (var command = new SqlCommand(
@@ -64,71 +64,135 @@ public class DbHelper
                 command.Parameters.AddWithValue("@LogData", logData);
                 command.Parameters.AddWithValue("@Id", Id);
 
-                command.ExecuteNonQuery();
+                await command.ExecuteNonQueryAsync();
             }
 
             connection.Close();
         }
     }
 
-    public static DataSet QueryCDCTables(string connectionString)
+    public static async Task<DataSet> QueryCDCTablesAsync(string connectionString)
     {
         using (var connection = new SqlConnection(connectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
 
             // Select changes from CDC tables
             string query = @"
-            SELECT
-                [__$operation],
-                [__$start_lsn],
-                [__$end_lsn],
-                [__$seqval],
-                [__$update_mask],
-                [Id],
-                [Month],
-                [LogData],
-                [__$command_id]
-            FROM
-                cdc.dbo_Logs_CT";
+        SELECT
+            [__$operation],
+            [__$start_lsn],
+            [__$end_lsn],
+            [__$seqval],
+            [__$update_mask],
+            [Id],
+            [Month],
+            [LogData],
+            [__$command_id]
+        FROM
+            cdc.dbo_Logs_CT";
 
             using (var command = new SqlCommand(query, connection))
             {
-                var adapter = new SqlDataAdapter(command);
-                var dataSet = new DataSet();
-
-                // Fill the DataSet with changes from CDC tables
-                adapter.Fill(dataSet);
-
-                // Set the primary key for each DataTable in the DataSet
-                foreach (DataTable table in dataSet.Tables)
+                using (var reader = await command.ExecuteReaderAsync())
                 {
-                    table.TableName = "dbo.Logs"; // TODO temporary hardcoded, find out why the table name is "Table" and not "dbo.Logs
-                    if (table.Columns.Contains("__$start_lsn") && table.Columns.Contains("__$seqval") && table.Columns.Contains("__$operation"))
+                    var dataSet = new DataSet();
+                    do
                     {
-                        DataColumn? startLsnColumn = table.Columns["__$start_lsn"];
-                        DataColumn? seqvalColumn = table.Columns["__$seqval"];
-                        DataColumn? operationColumn = table.Columns["__$operation"];
+                        // Create new DataTable
+                        var table = new DataTable();
+                        dataSet.Tables.Add(table);
 
-                        if (startLsnColumn != null && seqvalColumn != null && operationColumn != null)
+                        // Load the data from the reader into the DataTable
+                        table.Load(reader);
+                        table.TableName = "dbo.Logs"; // TODO temporary hardcoded, find out why the table name is "Table" and not "dbo.Logs
+
+                        // Set the primary key for the DataTable
+                        if (table.Columns.Contains("__$start_lsn") && table.Columns.Contains("__$seqval") && table.Columns.Contains("__$operation"))
                         {
-                            table.PrimaryKey = new DataColumn[] { startLsnColumn, seqvalColumn, operationColumn };
+                            DataColumn? startLsnColumn = table.Columns["__$start_lsn"];
+                            DataColumn? seqvalColumn = table.Columns["__$seqval"];
+                            DataColumn? operationColumn = table.Columns["__$operation"];
+
+                            if (startLsnColumn != null && seqvalColumn != null && operationColumn != null)
+                            {
+                                table.PrimaryKey = new DataColumn[] { startLsnColumn, seqvalColumn, operationColumn };
+                            }
+                        }
+
+                        // Convert the operation column to an integer
+                        foreach (DataRow row in table.Rows)
+                        {
+                            int operation = Convert.ToInt32(row["__$operation"]);
+                            row["__$operation"] = operation;
                         }
                     }
+                    while (!reader.IsClosed);
 
-                    // Convert the operation column to an integer
-                    foreach (DataRow row in table.Rows)
-                    {
-                        int operation = Convert.ToInt32(row["__$operation"]);
-                        row["__$operation"] = operation;
-                    }
+                    return dataSet;
                 }
-                connection.Close();
-
-                return dataSet;
             }
         }
     }
+
+    // public static async DataSet QueryCDCTables(string connectionString)
+    // {
+    //     using (var connection = new SqlConnection(connectionString))
+    //     {
+    //         await connection.OpenAsync();
+
+    //         // Select changes from CDC tables
+    //         string query = @"
+    //         SELECT
+    //             [__$operation],
+    //             [__$start_lsn],
+    //             [__$end_lsn],
+    //             [__$seqval],
+    //             [__$update_mask],
+    //             [Id],
+    //             [Month],
+    //             [LogData],
+    //             [__$command_id]
+    //         FROM
+    //             cdc.dbo_Logs_CT";
+
+    //         using (var command = new SqlCommand(query, connection))
+    //         {
+    //             var adapter = new SqlDataAdapter(command);
+    //             var dataSet = new DataSet();
+
+    //             // Fill the DataSet with changes from CDC tables
+    //             adapter.Fill(dataSet);
+
+    //             // Set the primary key for each DataTable in the DataSet
+    //             foreach (DataTable table in dataSet.Tables)
+    //             {
+    //                 table.TableName = "dbo.Logs"; // TODO temporary hardcoded, find out why the table name is "Table" and not "dbo.Logs
+    //                 if (table.Columns.Contains("__$start_lsn") && table.Columns.Contains("__$seqval") && table.Columns.Contains("__$operation"))
+    //                 {
+    //                     DataColumn? startLsnColumn = table.Columns["__$start_lsn"];
+    //                     DataColumn? seqvalColumn = table.Columns["__$seqval"];
+    //                     DataColumn? operationColumn = table.Columns["__$operation"];
+
+    //                     if (startLsnColumn != null && seqvalColumn != null && operationColumn != null)
+    //                     {
+    //                         table.PrimaryKey = new DataColumn[] { startLsnColumn, seqvalColumn, operationColumn };
+    //                     }
+    //                 }
+
+    //                 // Convert the operation column to an integer
+    //                 foreach (DataRow row in table.Rows)
+    //                 {
+    //                     int operation = Convert.ToInt32(row["__$operation"]);
+    //                     row["__$operation"] = operation;
+    //                 }
+    //             }
+    //             connection.Close();
+
+    //             return dataSet;
+    //         }
+    //     }
+    // }
     public async Task EmptyDatabaseTableDboLogsAsync()
     {
         using (var connection = new SqlConnection(connectionString))

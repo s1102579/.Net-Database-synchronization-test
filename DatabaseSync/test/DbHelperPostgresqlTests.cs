@@ -129,7 +129,7 @@ public class DbHelperPostgresqlTests
 
         // Act
         await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(dataSet, _testConnectionString);
-        Thread.Sleep(4000);
+        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_testConnectionString))

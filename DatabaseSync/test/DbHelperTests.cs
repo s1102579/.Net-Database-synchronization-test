@@ -123,7 +123,7 @@ public class DbHelperTests
         Thread.Sleep(5000); // pollinginterval of the CDC is 5 seconds
 
         // Act
-        var result = DbHelper.QueryCDCTables(_testConnectionString);
+        var result = await DbHelper.QueryCDCTablesAsync(_testConnectionString);
 
         // Assert
         Assert.NotNull(result);

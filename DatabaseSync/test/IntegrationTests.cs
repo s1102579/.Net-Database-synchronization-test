@@ -112,10 +112,10 @@ public class IntegrationTests : IDisposable
     }
 
     [Fact, TestPriority(3)]
-    public void TestQueryCDCTables() // sometimes fails
+    public async void TestQueryCDCTables() // sometimes fails
     {
         // Act
-        fixture.DataChanges = DbHelper.QueryCDCTables(_connectionStringMSSQL);
+        fixture.DataChanges = await DbHelper.QueryCDCTablesAsync(_connectionStringMSSQL);
 
         // Assert
         Assert.NotNull(fixture.DataChanges);
@@ -140,22 +140,22 @@ public class IntegrationTests : IDisposable
     }
 
     [Fact, TestPriority(4)]
-    public void TestSyncDataToPostgresInsert()
+    public async void TestSyncDataToPostgresInsert()
     {
         // Act
-        Thread.Sleep(4000);
-        DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
-        Thread.Sleep(4000);
+        // Thread.Sleep(4000);
+        await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
+        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new NpgsqlConnection(_connectionStringPostgres))
         {
-            connection.Open();
+            await connection.OpenAsync();
             string tableName = "dbo.Logs";
             string commandText = $"SELECT * FROM \"{tableName}\";";
             using (var command = new NpgsqlCommand(commandText, connection))
             {
-                using (var reader = command.ExecuteReader())
+                using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
                     Assert.Equal("May", reader.GetString(1));
@@ -178,7 +178,7 @@ public class IntegrationTests : IDisposable
     //     Thread.Sleep(4000);
 
     //     // Act
-    //     _dbHelperMSSQL.UpdateLogData(sampleMonth, sampleLogData, fixture.DataChanges.Tables[0].Columns[5].ColumnName);
+    //     _dbHelperMSSQL.UpdateLogDataAsync(sampleMonth, sampleLogData, fixture.DataChanges.Tables[0].Columns[5].ColumnName);
 
     //     // Assert
     //     using (var connection = new SqlConnection(_connectionStringMSSQL))

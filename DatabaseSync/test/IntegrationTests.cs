@@ -197,4 +197,142 @@ public class IntegrationTests : IDisposable
             connection.Close();
         }
     }
+
+    [Fact, TestPriority(6)]
+    public async void TestQueryCDCTablesAfterUpdate()
+    {
+        // Arrange
+        Thread.Sleep(5000); // wait for the CDC table to be updated
+
+        // Act
+        fixture.DataChanges = await DbHelper.QueryCDCTablesAsync(_connectionStringMSSQL);
+
+        // Assert
+        Assert.NotNull(fixture.DataChanges);
+        Assert.Single(fixture.DataChanges.Tables);
+        Assert.Equal("dbo.Logs", fixture.DataChanges.Tables[0].TableName); // already named the table for the postgreSQL database
+        Assert.Equal(9, fixture.DataChanges.Tables[0].Columns.Count);
+        Assert.Equal("__$operation", fixture.DataChanges.Tables[0].Columns[0].ColumnName);
+        Assert.Equal("__$start_lsn", fixture.DataChanges.Tables[0].Columns[1].ColumnName);
+        Assert.Equal("__$end_lsn", fixture.DataChanges.Tables[0].Columns[2].ColumnName);
+        Assert.Equal("__$seqval", fixture.DataChanges.Tables[0].Columns[3].ColumnName);
+        Assert.Equal("__$update_mask", fixture.DataChanges.Tables[0].Columns[4].ColumnName);
+        Assert.Equal("Id", fixture.DataChanges.Tables[0].Columns[5].ColumnName);
+        Assert.Equal("Month", fixture.DataChanges.Tables[0].Columns[6].ColumnName);
+        Assert.Equal("LogData", fixture.DataChanges.Tables[0].Columns[7].ColumnName);
+        Assert.Equal("__$command_id", fixture.DataChanges.Tables[0].Columns[8].ColumnName);
+
+        Assert.Equal(3, fixture.DataChanges.Tables[0].Rows.Count); // assuming that only 2 rows are added and 1 was already there
+        var oldUpdaterow = fixture.DataChanges.Tables[0].Rows[1];
+        var newUpdaterow = fixture.DataChanges.Tables[0].Rows[2];
+        Assert.Equal(3, oldUpdaterow["__$operation"]); //check if the operation is an update (old data)
+        Assert.Equal("May", oldUpdaterow["Month"]);
+        Assert.Equal("{\"message\":\"Log entry 1\",\"severity\":\"info\"}", oldUpdaterow["LogData"]);
+
+        Assert.Equal(4, newUpdaterow["__$operation"]); //check if the operation is an update (new data)
+        Assert.Equal("June", newUpdaterow["Month"]);
+        Assert.Equal("{\"message\":\"Log entry 2\",\"severity\":\"info\"}", newUpdaterow["LogData"]);
+    }
+
+    [Fact, TestPriority(7)]
+    public async void TestSyncDataToPostgresUpdate()
+    {
+        // Act
+        await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
+
+        // Assert
+        using (var connection = new NpgsqlConnection(_connectionStringPostgres))
+        {
+            await connection.OpenAsync();
+            string tableName = "dbo.Logs";
+            string commandText = $"SELECT * FROM \"{tableName}\";";
+            using (var command = new NpgsqlCommand(commandText, connection))
+            {
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
+                    Assert.Equal("June", reader.GetString(1));
+                    Assert.Equal("{\"message\": \"Log entry 2\", \"severity\": \"info\"}", reader.GetString(2));
+                }
+            }
+            connection.Close();
+        }
+    }
+
+    [Fact, TestPriority(8)]
+    public async Task TestDeleteLogDataInMSSQLAsync()
+    {
+        // Act
+        await _dbHelperMSSQL.DeleteLogDataAsync(fixture.DataChanges.Tables[0].Rows[2]["Id"].ToString());
+
+        // Assert
+        using (var connection = new SqlConnection(_connectionStringMSSQL))
+        {
+            await connection.OpenAsync();
+            using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Id = @Id", connection))
+            {
+                command.Parameters.AddWithValue("@Id", fixture.DataChanges.Tables[0].Rows[2]["Id"]);
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    Assert.False(reader.Read(), "Data found with the provided Id");
+                }
+            }
+            connection.Close();
+        }
+    }
+
+    [Fact, TestPriority(9)]
+    public async void TestQueryCDCTablesAfterDelete()
+    {
+        // Arrange
+        Thread.Sleep(5000); // wait for the CDC table to be updated
+
+        // Act
+        fixture.DataChanges = await DbHelper.QueryCDCTablesAsync(_connectionStringMSSQL);
+
+        // Assert
+        Assert.NotNull(fixture.DataChanges);
+        Assert.Single(fixture.DataChanges.Tables);
+        Assert.Equal("dbo.Logs", fixture.DataChanges.Tables[0].TableName); // already named the table for the postgreSQL database
+        Assert.Equal(9, fixture.DataChanges.Tables[0].Columns.Count);
+        Assert.Equal("__$operation", fixture.DataChanges.Tables[0].Columns[0].ColumnName);
+        Assert.Equal("__$start_lsn", fixture.DataChanges.Tables[0].Columns[1].ColumnName);
+        Assert.Equal("__$end_lsn", fixture.DataChanges.Tables[0].Columns[2].ColumnName);
+        Assert.Equal("__$seqval", fixture.DataChanges.Tables[0].Columns[3].ColumnName);
+        Assert.Equal("__$update_mask", fixture.DataChanges.Tables[0].Columns[4].ColumnName);
+        Assert.Equal("Id", fixture.DataChanges.Tables[0].Columns[5].ColumnName);
+        Assert.Equal("Month", fixture.DataChanges.Tables[0].Columns[6].ColumnName);
+        Assert.Equal("LogData", fixture.DataChanges.Tables[0].Columns[7].ColumnName);
+        Assert.Equal("__$command_id", fixture.DataChanges.Tables[0].Columns[8].ColumnName);
+
+        Assert.Equal(4, fixture.DataChanges.Tables[0].Rows.Count); // assuming that only 1 rows are added and 3 was already there
+        var deleterow = fixture.DataChanges.Tables[0].Rows[3];
+        Assert.Equal(1, deleterow["__$operation"]); //check if the operation is an delete operation
+        Assert.Equal("June", deleterow["Month"]);
+        Assert.Equal("{\"message\":\"Log entry 2\",\"severity\":\"info\"}", deleterow["LogData"]);
+    }
+
+    [Fact, TestPriority(10)]
+    public async void TestSyncDataToPostgresDelete()
+    {
+        // Act
+        await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
+
+        // Assert
+        using (var connection = new NpgsqlConnection(_connectionStringPostgres))
+        {
+            await connection.OpenAsync();
+            string tableName = "dbo.Logs";
+            string commandText = $"SELECT * FROM \"{tableName}\";";
+            using (var command = new NpgsqlCommand(commandText, connection))
+            {
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    Assert.False(reader.Read(), "Data found in the table dbo.Logs");
+                }
+            }
+            connection.Close();
+        }
+    }
 }

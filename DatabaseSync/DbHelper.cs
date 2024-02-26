@@ -71,6 +71,26 @@ public class DbHelper
         }
     }
 
+    public async Task DeleteLogDataAsync(string Id)
+    {
+        using (var connection = new SqlConnection(connectionString))
+        {
+            await connection.OpenAsync();
+
+            // Delete a log record from the table
+            using (var command = new SqlCommand(
+                "DELETE FROM Logs WHERE Id = @Id",
+                connection))
+            {
+                command.Parameters.AddWithValue("@Id", Id);
+
+                await command.ExecuteNonQueryAsync();
+            }
+
+            connection.Close();
+        }
+    }
+
     public static async Task<DataSet> QueryCDCTablesAsync(string connectionString)
     {
         using (var connection = new SqlConnection(connectionString))

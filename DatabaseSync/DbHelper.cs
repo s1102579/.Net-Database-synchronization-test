@@ -29,11 +29,11 @@ public class DbHelper
         }
     }
 
-    public void InsertLogData(string month, string logData)
+    public async Task InsertLogDataAsync(string month, string logData)
     {
         using (var connection = new SqlConnection(connectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
 
             // Insert a log record into the table
             using (var command = new SqlCommand(
@@ -43,7 +43,7 @@ public class DbHelper
                 command.Parameters.AddWithValue("@Month", month);
                 command.Parameters.AddWithValue("@LogData", logData);
 
-                command.ExecuteNonQuery();
+                await command.ExecuteNonQueryAsync();
             }
             connection.Close();
         }
@@ -129,36 +129,46 @@ public class DbHelper
             }
         }
     }
-    public void EmptyDatabaseTableDboLogs()
+    public async Task EmptyDatabaseTableDboLogsAsync()
     {
         using (var connection = new SqlConnection(connectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
 
             using (var command = new SqlCommand())
             {
                 command.Connection = connection;
-                
+
                 command.CommandText = "DELETE FROM dbo.Logs";
-                command.ExecuteNonQuery();
+                await command.ExecuteNonQueryAsync();
             }
 
             connection.Close();
         }
     }
 
-    public void EmptyDatabaseCDCTableDboLogs() 
+    public async Task EmptyDatabaseCDCTableDboLogsAsync()
     {
         using (var connection = new SqlConnection(connectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
 
             using (var command = new SqlCommand())
             {
                 command.Connection = connection;
-                
+                Console.WriteLine("Deleting from cdc.dbo_Logs_CT");
+
+                // // Get the highest LSN from the cdc.lsn_time_mapping table
+                // command.CommandText = "SELECT TOP 1 start_lsn FROM cdc.lsn_time_mapping ORDER BY start_lsn DESC";
+                // var lsn = await command.ExecuteScalarAsync();
+                // Console.WriteLine($"lsn: {lsn}");
+
+                // // Use the LSN as the @low_water_mark parameter in the call to sp_cdc_cleanup_change_table
+                // command.CommandText = $"EXECUTE sys.sp_cdc_cleanup_change_table @capture_instance = 'dbo_Logs', @low_water_mark = @lsn, @threshold = 50000";
+                // command.Parameters.AddWithValue("@lsn", lsn);
+
                 command.CommandText = "DELETE FROM cdc.dbo_Logs_CT";
-                command.ExecuteNonQuery();
+                await command.ExecuteNonQueryAsync();
             }
 
             connection.Close();

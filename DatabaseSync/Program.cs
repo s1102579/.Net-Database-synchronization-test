@@ -14,39 +14,41 @@ var dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres);
 // dbHelperPostgres.checkIfDatabaseExists(); // Check if the database exists and create it if not
 // dbHelper.CreateLogsTable(); // Create the Logs table if not exists
 
-
-// run 1: insert Log data
-Console.WriteLine("Inserting sample log data...");
-for (int i = 2; i <= 11; i++)
-{
-    string sampleMonth = "March";
-    string sampleLogData = $"{{\"message\":\"Log entry {i}\",\"severity\":\"info\"}}";
-    dbHelper.InsertLogData(sampleMonth, sampleLogData);
-}
-
-Console.WriteLine("Sample log data inserted.");
-
-// wait for changes to be captured by the CDC
-Console.WriteLine("Waiting for changes to be captured by the CDC...");
-Thread.Sleep(5000);
-Console.WriteLine("Changes captured.");
+await dbHelper.EmptyDatabaseCDCTableDboLogsAsync(); // Empty the Logs table
 
 
+// // run 1: insert Log data
+// Console.WriteLine("Inserting sample log data...");
+// for (int i = 2; i <= 11; i++)
+// {
+//     string sampleMonth = "March";
+//     string sampleLogData = $"{{\"message\":\"Log entry {i}\",\"severity\":\"info\"}}";
+//     dbHelper.InsertLogDataAsync(sampleMonth, sampleLogData);
+// }
 
-// run 2: check cdc table and apply changes to postgres
-var dataChanges = DbHelper.QueryCDCTables(connectionStringMSSQL);
-Console.WriteLine("Data changes:");
-foreach (DataTable table in dataChanges.Tables)
-{
-    Console.WriteLine($"Table: {table.TableName}");
+// Console.WriteLine("Sample log data inserted.");
 
-    // Print column names
-    Console.WriteLine("Columns: " + string.Join(", ", table.Columns.Cast<DataColumn>().Select(c => c.ColumnName)));
+// // wait for changes to be captured by the CDC
+// Console.WriteLine("Waiting for changes to be captured by the CDC...");
+// Thread.Sleep(5000);
+// Console.WriteLine("Changes captured.");
 
-    foreach (DataRow row in table.Rows)
-    {
-        Console.WriteLine(string.Join(", ", row.ItemArray));
-    }
-}
 
-DbHelperPostgresql.ApplyChangesToPostgreSQL(dataChanges, connectionStringPostgres); // Apply the changes to the PostgreSQL database
+
+// // run 2: check cdc table and apply changes to postgres
+// var dataChanges = DbHelper.QueryCDCTables(connectionStringMSSQL);
+// Console.WriteLine("Data changes:");
+// foreach (DataTable table in dataChanges.Tables)
+// {
+//     Console.WriteLine($"Table: {table.TableName}");
+
+//     // Print column names
+//     Console.WriteLine("Columns: " + string.Join(", ", table.Columns.Cast<DataColumn>().Select(c => c.ColumnName)));
+
+//     foreach (DataRow row in table.Rows)
+//     {
+//         Console.WriteLine(string.Join(", ", row.ItemArray));
+//     }
+// }
+
+// DbHelperPostgresql.ApplyChangesToPostgreSQL(dataChanges, connectionStringPostgres); // Apply the changes to the PostgreSQL database

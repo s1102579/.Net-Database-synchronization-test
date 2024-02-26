@@ -16,7 +16,7 @@ public class DbHelperPostgresqlTests
 
     private void EmptyDatabase()
     {
-        _dbHelperPostgresql.EmptyDatabaseTableDboLogs();
+        _dbHelperPostgresql.EmptyDatabaseTableDboLogsAsync();
         Thread.Sleep(4000);
     }
 
@@ -43,7 +43,7 @@ public class DbHelperPostgresqlTests
         Thread.Sleep(4000);
 
         // Act
-        _dbHelperPostgresql.EmptyDatabaseTableDboLogs();
+        _dbHelperPostgresql.EmptyDatabaseTableDboLogsAsync();
         Thread.Sleep(4000);
 
         // Assert

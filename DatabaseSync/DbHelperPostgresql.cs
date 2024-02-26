@@ -45,13 +45,13 @@ public class DbHelperPostgresql
         }
     }
 
-    public void EmptyDatabaseTableDboLogs()
+    public async Task EmptyDatabaseTableDboLogsAsync()
     {
         string tableName = "dbo.Logs";
         string commandText = $"DELETE FROM \"{tableName}\";";
         using (var connection = new NpgsqlConnection(connectionString))
         {
-            connection.Open();
+            await connection.OpenAsync();
 
             using (var command = new NpgsqlCommand(commandText, connection))
             {

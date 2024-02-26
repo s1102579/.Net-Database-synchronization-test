@@ -40,37 +40,36 @@ public class IntegrationTests : IDisposable
         // TODO: Add your cleanup code here
     }
 
-    private void EmptyDatabase()
+    private async Task EmptyDatabaseAsync()
     {
-        _dbHelperMSSQL.EmptyDatabaseTableDboLogs();
-        Thread.Sleep(10000);
-        _dbHelperMSSQL.EmptyDatabaseCDCTableDboLogs();
-        Thread.Sleep(10000);
-        _dbHelperPostgres.EmptyDatabaseTableDboLogs();
+        await _dbHelperMSSQL.EmptyDatabaseTableDboLogsAsync();
+        Thread.Sleep(5000); // pollinginterval of the CDC is 5 seconds
+        await _dbHelperMSSQL.EmptyDatabaseCDCTableDboLogsAsync();
+        await _dbHelperPostgres.EmptyDatabaseTableDboLogsAsync();
     }
 
     [Fact, TestPriority(1)]
-    public void TestaddingLogDataToMSSQL()
+    public async Task TestaddingLogDataToMSSQLAsync()
     {
         // Arrange
         string sampleMonth = "May";
         string sampleLogData = "{\"message\":\"Log entry 1\",\"severity\":\"info\"}";
-        this.EmptyDatabase();
-        Thread.Sleep(4000);
+        await this.EmptyDatabaseAsync();
+        // Thread.Sleep(4000);
 
         // Act
-        _dbHelperMSSQL.InsertLogData(sampleMonth, sampleLogData);
+        await _dbHelperMSSQL.InsertLogDataAsync(sampleMonth, sampleLogData);
 
         // Assert
         using (var connection = new SqlConnection(_connectionStringMSSQL))
         {
-            connection.Open();
+            await connection.OpenAsync();
             using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Month = @month AND LogData = @logData", connection))
             {
                 command.Parameters.AddWithValue("@month", sampleMonth);
                 command.Parameters.AddWithValue("@logData", sampleLogData);
 
-                using (var reader = command.ExecuteReader())
+                using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.True(reader.Read(), "No data found with the provided month and log data");
 
@@ -86,18 +85,18 @@ public class IntegrationTests : IDisposable
     }
 
     [Fact, TestPriority(2)]
-    public void TestCheckIfCDCTableIsUpdated()
+    public async Task TestCheckIfCDCTableIsUpdatedAsync()
     {
         // Act
-        Thread.Sleep(10000);
+        Thread.Sleep(5000); // pollinginterval of the CDC is 5 seconds
 
         // Assert
         using (var connection = new SqlConnection(_connectionStringMSSQL))
         {
-            connection.Open();
+            await connection.OpenAsync();
             using (var command = new SqlCommand("SELECT * FROM cdc.dbo_Logs_CT WHERE __$operation = 2", connection))
             {
-                using (var reader = command.ExecuteReader())
+                using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.True(reader.Read(), "No data found in the CDC table");
 
@@ -116,9 +115,7 @@ public class IntegrationTests : IDisposable
     public void TestQueryCDCTables() // sometimes fails
     {
         // Act
-        Thread.Sleep(1000);
         fixture.DataChanges = DbHelper.QueryCDCTables(_connectionStringMSSQL);
-        Thread.Sleep(1000);
 
         // Assert
         Assert.NotNull(fixture.DataChanges);

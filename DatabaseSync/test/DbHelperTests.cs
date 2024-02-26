@@ -16,30 +16,29 @@ public class DbHelperTests
         _dbHelper = new DbHelper(_testConnectionString);
     }
 
-    private void EmptyDatabase()
+    private async Task EmptyDatabaseAsync()
     {
-        _dbHelper.EmptyDatabaseTableDboLogs();
-        Thread.Sleep(4000);
-        _dbHelper.EmptyDatabaseCDCTableDboLogs();
-        Thread.Sleep(4000);
+        await _dbHelper.EmptyDatabaseTableDboLogsAsync();
+        Thread.Sleep(5000); // pollinginterval of the CDC is 5 seconds
+        await _dbHelper.EmptyDatabaseCDCTableDboLogsAsync();
     }
 
 
     [Fact]
-    public void TestInsertLogData()
+    public async Task TestInsertLogDataAsync()
     {
         // Arrange
-        this.EmptyDatabase();
+        await this.EmptyDatabaseAsync();
         string sampleMonth = "March";
         string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
 
         // Act
-        _dbHelper.InsertLogData(sampleMonth, sampleLogData);
+        await _dbHelper.InsertLogDataAsync(sampleMonth, sampleLogData);
 
         // Assert
         using (var connection = new SqlConnection(_testConnectionString))
         {
-            connection.Open();
+            await connection.OpenAsync(); // TODO check if async will help, not needing Thread.Sleep anymore
             using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Month = @month AND LogData = @logData", connection))
             {
                 command.Parameters.AddWithValue("@month", sampleMonth);
@@ -61,14 +60,15 @@ public class DbHelperTests
     }
 
     [Fact]
-    public void TestEmptyDatabaseTableDboLogs()
+    public async Task TestEmptyDatabaseTableDboLogsAsync()
     {
         // Arrange
         var dbHelper = new DbHelper(_testConnectionString);
 
         // Act
-        dbHelper.EmptyDatabaseTableDboLogs();
-        Thread.Sleep(4000);
+        await dbHelper.InsertLogDataAsync("March", "Log entry");
+        await dbHelper.EmptyDatabaseTableDboLogsAsync();
+        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new SqlConnection(_testConnectionString))
@@ -84,37 +84,43 @@ public class DbHelperTests
     }
 
     [Fact]
-    public void TestEmptyDatabaseCDCTableDboLogs()
+    public async Task TestEmptyDatabaseCDCTableDboLogsAsync()
     {
         // Arrange
         var dbHelper = new DbHelper(_testConnectionString);
 
         // Act
-        dbHelper.EmptyDatabaseCDCTableDboLogs();
-        Thread.Sleep(4000);
+        await dbHelper.InsertLogDataAsync("March", "Log entry");
+        Thread.Sleep(5000); // pollinginterval of the CDC is 5 seconds
+        await dbHelper.EmptyDatabaseCDCTableDboLogsAsync();
+        // Thread.Sleep(4000);
 
         // Assert
         using (var connection = new SqlConnection(_testConnectionString))
         {
-            connection.Open();
-            using (var command = new SqlCommand("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'dbo.Logs'", connection))
+            await connection.OpenAsync();
+            // using (var command = new SqlCommand("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'dbo_Logs_CT'", connection))
+            using (var command = new SqlCommand("SELECT COUNT(*) FROM cdc.dbo_Logs_CT", connection))
             {
-                var result = command.ExecuteScalar();
-                Assert.Null(result);
+                // var result = await command.ExecuteScalarAsync();
+                // Assert.Null(result);
+
+                var result = (int)await command.ExecuteScalarAsync();
+                Assert.Equal(0, result);
             }
             connection.Close();
         }
     }
 
     [Fact]
-    public void TestQueryCDCTables() // fails to often probably due to the time it takes for the CDC table to be updated
+    public async Task TestQueryCDCTablesAsync() // fails to often probably due to the time it takes for the CDC table to be updated
     {
         // Arrange
-        this.EmptyDatabase();
+        await this.EmptyDatabaseAsync();
         string sampleMonth = "March";
         string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
-        _dbHelper.InsertLogData(sampleMonth, sampleLogData);
-        Thread.Sleep(30000); // find out how long it takes for the CDC table to be updated, and see if it's possible to reduce the time
+        await _dbHelper.InsertLogDataAsync(sampleMonth, sampleLogData);
+        Thread.Sleep(5000); // pollinginterval of the CDC is 5 seconds
 
         // Act
         var result = DbHelper.QueryCDCTables(_testConnectionString);

@@ -88,7 +88,7 @@ public class DbHelperTests
         string sampleMonth = "December";
         string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
         await _dbHelper.InsertLogDataAsync(sampleMonth, sampleLogData);
-        string id = await FindIdInsertedRowAsync();
+        string? id = await FindIdInsertedRowAsync() ?? string.Empty;
 
         // Act
         string updatedLogData = $"{{\"message\":\"Updated log entry\",\"severity\":\"info\"}}";
@@ -126,7 +126,7 @@ public class DbHelperTests
         string sampleMonth = "November";
         string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
         await _dbHelper.InsertLogDataAsync(sampleMonth, sampleLogData);
-        string id = await FindIdInsertedRowAsync();
+        string? id = await FindIdInsertedRowAsync() ?? string.Empty;
 
         // Act
         await _dbHelper.DeleteLogDataAsync(id);
@@ -188,7 +188,7 @@ public class DbHelperTests
             await connection.OpenAsync();
             using (var command = new SqlCommand("SELECT COUNT(*) FROM cdc.dbo_Logs_CT", connection))
             {
-                var result = (int)await command.ExecuteScalarAsync();
+                var result = Convert.ToInt32(await command.ExecuteScalarAsync());
                 Assert.Equal(0, result);
             }
             connection.Close();

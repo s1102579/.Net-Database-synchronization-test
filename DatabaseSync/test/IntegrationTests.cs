@@ -5,7 +5,7 @@ using Xunit;
 
 public class DatabaseFixture
 {
-    public DataSet DataChanges { get; set; }
+    public DataSet? DataChanges { get; set; }
 }
 
 [CollectionDefinition("Database collection")]
@@ -142,7 +142,10 @@ public class IntegrationTests : IDisposable
     public async void TestSyncDataToPostgresInsert()
     {
         // Act
-        await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
+        if (fixture.DataChanges != null)
+        {
+            await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
+        }
 
         // Assert
         using (var connection = new NpgsqlConnection(_connectionStringPostgres))
@@ -171,7 +174,14 @@ public class IntegrationTests : IDisposable
         string sampleLogData = "{\"message\":\"Log entry 2\",\"severity\":\"info\"}";
 
         // Act
-        await _dbHelperMSSQL.UpdateLogDataAsync(sampleMonth, sampleLogData, fixture.DataChanges.Tables[0].Rows[0]["Id"].ToString());
+        if (fixture.DataChanges != null && fixture.DataChanges.Tables[0].Rows.Count > 0)
+        {
+            var id = fixture.DataChanges.Tables[0].Rows[0]["Id"]?.ToString();
+            if (id != null)
+            {
+                await _dbHelperMSSQL.UpdateLogDataAsync(sampleMonth, sampleLogData, id);
+            }
+        }
 
         // Assert
         using (var connection = new SqlConnection(_connectionStringMSSQL))
@@ -179,17 +189,20 @@ public class IntegrationTests : IDisposable
             await connection.OpenAsync();
             using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Id = @Id", connection))
             {
-                command.Parameters.AddWithValue("@Id", fixture.DataChanges.Tables[0].Rows[0]["Id"]);
+                if (fixture.DataChanges != null && fixture.DataChanges.Tables[0].Rows.Count > 0)
+                {
+                    command.Parameters.AddWithValue("@Id", fixture.DataChanges.Tables[0].Rows[0]["Id"]);
+                }
 
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.True(reader.Read(), "No data found with the provided month and log data");
 
-                    var id = reader["Id"].ToString();
-                    var month = reader["Month"].ToString();
-                    var logData = reader["LogData"].ToString();
+                    var id = reader["Id"]?.ToString();
+                    var month = reader["Month"]?.ToString();
+                    var logData = reader["LogData"]?.ToString();
 
-                    Assert.Equal(fixture.DataChanges.Tables[0].Rows[0]["Id"].ToString(), id);
+                    Assert.Equal(fixture.DataChanges?.Tables[0].Rows[0]["Id"]?.ToString(), id);
                     Assert.Equal(sampleMonth, month);
                     Assert.Equal(sampleLogData, logData);
                 }
@@ -238,7 +251,10 @@ public class IntegrationTests : IDisposable
     public async void TestSyncDataToPostgresUpdate()
     {
         // Act
-        await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
+        if (fixture.DataChanges != null)
+        {
+            await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
+        }
 
         // Assert
         using (var connection = new NpgsqlConnection(_connectionStringPostgres))
@@ -263,7 +279,14 @@ public class IntegrationTests : IDisposable
     public async Task TestDeleteLogDataInMSSQLAsync()
     {
         // Act
-        await _dbHelperMSSQL.DeleteLogDataAsync(fixture.DataChanges.Tables[0].Rows[2]["Id"].ToString());
+        if (fixture.DataChanges != null && fixture.DataChanges.Tables[0].Rows.Count > 2)
+        {
+            var id = fixture.DataChanges.Tables[0].Rows[2]["Id"]?.ToString();
+            if (id != null)
+            {
+                await _dbHelperMSSQL.DeleteLogDataAsync(id);
+            }
+        }
 
         // Assert
         using (var connection = new SqlConnection(_connectionStringMSSQL))
@@ -271,8 +294,12 @@ public class IntegrationTests : IDisposable
             await connection.OpenAsync();
             using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Id = @Id", connection))
             {
-                command.Parameters.AddWithValue("@Id", fixture.DataChanges.Tables[0].Rows[2]["Id"]);
-
+                var idValue = fixture.DataChanges?.Tables[0].Rows[2]["Id"];
+                if (idValue != null)
+                {
+                    command.Parameters.AddWithValue("@Id", idValue);
+                }
+       
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.False(reader.Read(), "Data found with the provided Id");
@@ -317,7 +344,10 @@ public class IntegrationTests : IDisposable
     public async void TestSyncDataToPostgresDelete()
     {
         // Act
-        await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
+        if (fixture.DataChanges != null)
+        {
+            await DbHelperPostgresql.ApplyChangesToPostgreSQLAsync(fixture.DataChanges, _connectionStringPostgres);
+        }
 
         // Assert
         using (var connection = new NpgsqlConnection(_connectionStringPostgres))

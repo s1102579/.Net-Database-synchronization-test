@@ -23,6 +23,27 @@ public class DbHelperTests
         await _dbHelper.EmptyDatabaseCDCTableDboLogsAsync();
     }
 
+    private async Task<string?> FindIdInsertedRowAsync()
+    {
+
+        using (var connection = new SqlConnection(_testConnectionString))
+        {
+            await connection.OpenAsync();
+            // there is only one row in the table, so no need to use a WHERE clause
+            using (var command = new SqlCommand("SELECT * FROM dbo.Logs", connection))
+            {
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    Console.WriteLine("reader.Read() " + reader.Read()); // Without this Console.WriteLine, the test will fail for some reason
+                    var id = reader["Id"].ToString();
+                    await connection.CloseAsync();
+                    return id;
+                }
+            }
+        }
+
+    }
+
 
     [Fact]
     public async Task TestInsertLogDataAsync()
@@ -53,6 +74,74 @@ public class DbHelperTests
 
                     Assert.Equal(sampleMonth, month);
                     Assert.Equal(sampleLogData, logData);
+                }
+            }
+            connection.Close();
+        }
+    }
+
+    [Fact]
+    public async Task TestUpdateLogDataAsync()
+    {
+        // Arrange
+        await this.EmptyDatabaseAsync();
+        string sampleMonth = "December";
+        string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
+        await _dbHelper.InsertLogDataAsync(sampleMonth, sampleLogData);
+        string id = await FindIdInsertedRowAsync();
+
+        // Act
+        string updatedLogData = $"{{\"message\":\"Updated log entry\",\"severity\":\"info\"}}";
+        await _dbHelper.UpdateLogDataAsync(sampleMonth, updatedLogData, id);
+
+        // Assert
+        using (var connection = new SqlConnection(_testConnectionString))
+        {
+            await connection.OpenAsync();
+            using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Id = @Id", connection))
+            {
+                command.Parameters.AddWithValue("@Id", id);
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    Assert.True(reader.Read(), "No data found with the provided month and log data");
+
+                    var month = reader["Month"].ToString();
+                    var logData = reader["LogData"].ToString();
+
+                    Assert.Equal(sampleMonth, month);
+                    Assert.Equal(updatedLogData, logData);
+                    Assert.Equal(id, reader["Id"].ToString());
+                }
+            }
+            connection.Close();
+        }
+    }
+
+    [Fact]
+    public async Task TestDeleteLogDataAsync()
+    {
+        // Arrange
+        await this.EmptyDatabaseAsync();
+        string sampleMonth = "November";
+        string sampleLogData = $"{{\"message\":\"Log entry\",\"severity\":\"info\"}}";
+        await _dbHelper.InsertLogDataAsync(sampleMonth, sampleLogData);
+        string id = await FindIdInsertedRowAsync();
+
+        // Act
+        await _dbHelper.DeleteLogDataAsync(id);
+
+        // Assert
+        using (var connection = new SqlConnection(_testConnectionString))
+        {
+            await connection.OpenAsync();
+            using (var command = new SqlCommand("SELECT * FROM dbo.Logs WHERE Id = @Id", connection))
+            {
+                command.Parameters.AddWithValue("@Id", id);
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    Assert.False(reader.Read(), "Data found in the table dbo.Logs");
                 }
             }
             connection.Close();
@@ -107,7 +196,7 @@ public class DbHelperTests
     }
 
     [Fact]
-    public async Task TestQueryCDCTablesAsync() // fails to often probably due to the time it takes for the CDC table to be updated
+    public async Task TestQueryCDCTablesAsync()
     {
         // Arrange
         await this.EmptyDatabaseAsync();

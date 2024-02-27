@@ -14,8 +14,8 @@ public class CDCTranslaterToPostgres
                 return TranslateDeleteToPostgreSQL(tableName, change);
             case 2: // Insert
                 return TranslateInsertToPostgreSQL(tableName, change);
-            case 3: // Update
-                return TranslateUpdateToPostgreSQL(tableName, change);
+            case 3: // Update (Old data) can be ignored
+                // do nothing
             case 4: // Update
                 return TranslateUpdateToPostgreSQL(tableName, change);
             default:

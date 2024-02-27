@@ -167,7 +167,7 @@ public class IntegrationTests : IDisposable
     }
 
     [Fact, TestPriority(5)]
-    public async Task TestUpdateLogDataInMSSQLAsync() // will fail for now
+    public async Task TestUpdateLogDataInMSSQLAsync()
     {
         // Arrange
         string sampleMonth = "June";

@@ -71,7 +71,7 @@ string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Pa
 // }
 
 // check postgres connection
-using (var contextPSQL = new PostgreSqlDbContext())
+using (var contextPSQL = PostgreSqlDbContext.Instance)
 {
     try
     {

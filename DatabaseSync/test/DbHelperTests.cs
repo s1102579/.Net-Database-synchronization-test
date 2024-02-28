@@ -8,12 +8,14 @@ public class DbHelperTests
 {
     private readonly string _testConnectionString = "Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
     private readonly DbHelper _dbHelper;
+    private readonly SqlServerDbContext _dbContext;
     private readonly ITestOutputHelper _output;
 
     public DbHelperTests(ITestOutputHelper output)
     {
         _output = output;
-        _dbHelper = new DbHelper(_testConnectionString);
+        _dbContext = new SqlServerDbContext();
+        _dbHelper = new DbHelper(_dbContext, _testConnectionString);
     }
 
     private async Task EmptyDatabaseAsync()
@@ -92,7 +94,7 @@ public class DbHelperTests
 
         // Act
         string updatedLogData = $"{{\"message\":\"Updated log entry\",\"severity\":\"info\"}}";
-        await _dbHelper.UpdateLogDataAsync(sampleMonth, updatedLogData, id);
+        await _dbHelper.UpdateLogDataAsync(sampleMonth, updatedLogData, int.Parse(id));
 
         // Assert
         using (var connection = new SqlConnection(_testConnectionString))
@@ -129,7 +131,7 @@ public class DbHelperTests
         string? id = await FindIdInsertedRowAsync() ?? string.Empty;
 
         // Act
-        await _dbHelper.DeleteLogDataAsync(id);
+        await _dbHelper.DeleteLogDataAsync(int.Parse(id));
 
         // Assert
         using (var connection = new SqlConnection(_testConnectionString))
@@ -151,12 +153,9 @@ public class DbHelperTests
     [Fact]
     public async Task TestEmptyDatabaseTableDboLogsAsync()
     {
-        // Arrange
-        var dbHelper = new DbHelper(_testConnectionString);
-
         // Act
-        await dbHelper.InsertLogDataAsync("March", "Log entry");
-        await dbHelper.EmptyDatabaseTableDboLogsAsync();
+        await _dbHelper.InsertLogDataAsync("March", "Log entry");
+        await _dbHelper.EmptyDatabaseTableDboLogsAsync();
 
         // Assert
         using (var connection = new SqlConnection(_testConnectionString))
@@ -174,13 +173,10 @@ public class DbHelperTests
     [Fact]
     public async Task TestEmptyDatabaseCDCTableDboLogsAsync()
     {
-        // Arrange
-        var dbHelper = new DbHelper(_testConnectionString);
-
         // Act
-        await dbHelper.InsertLogDataAsync("March", "Log entry");
+        await _dbHelper.InsertLogDataAsync("March", "Log entry");
         Thread.Sleep(5000); // pollinginterval of the CDC is 5 seconds
-        await dbHelper.EmptyDatabaseCDCTableDboLogsAsync();
+        await _dbHelper.EmptyDatabaseCDCTableDboLogsAsync();
 
         // Assert
         using (var connection = new SqlConnection(_testConnectionString))

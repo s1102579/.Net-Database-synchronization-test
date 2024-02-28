@@ -25,12 +25,14 @@ public class IntegrationTests : IDisposable
     private readonly string _connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;";
     private readonly DbHelper _dbHelperMSSQL;
     private readonly DbHelperPostgresql _dbHelperPostgres;
+    private readonly SqlServerDbContext _dbContext;
     private DatabaseFixture fixture;
 
     public IntegrationTests(DatabaseFixture fixture)
     {
         this.fixture = fixture;
-        _dbHelperMSSQL = new DbHelper(_connectionStringMSSQL);
+        _dbContext = new SqlServerDbContext();
+        _dbHelperMSSQL = new DbHelper(_dbContext ,_connectionStringMSSQL);
         _dbHelperPostgres = new DbHelperPostgresql(_connectionStringPostgres);
     }
 
@@ -179,7 +181,7 @@ public class IntegrationTests : IDisposable
             var id = fixture.DataChanges.Tables[0].Rows[0]["Id"]?.ToString();
             if (id != null)
             {
-                await _dbHelperMSSQL.UpdateLogDataAsync(sampleMonth, sampleLogData, id);
+                await _dbHelperMSSQL.UpdateLogDataAsync(sampleMonth, sampleLogData, int.Parse(id));
             }
         }
 
@@ -284,7 +286,7 @@ public class IntegrationTests : IDisposable
             var id = fixture.DataChanges.Tables[0].Rows[2]["Id"]?.ToString();
             if (id != null)
             {
-                await _dbHelperMSSQL.DeleteLogDataAsync(id);
+                await _dbHelperMSSQL.DeleteLogDataAsync(int.Parse(id));
             }
         }
 

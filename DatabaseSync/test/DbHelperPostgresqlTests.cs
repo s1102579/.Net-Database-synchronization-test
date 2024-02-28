@@ -1,6 +1,7 @@
 
 
 using System.Data;
+using DatabaseSync.Entities;
 using Npgsql;
 using Xunit;
 
@@ -8,10 +9,12 @@ public class DbHelperPostgresqlTests
 {
     private readonly string _testConnectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;";
     private readonly DbHelperPostgresql _dbHelperPostgresql;
+    private readonly PostgreSqlDbContext _dbContext;
 
     public DbHelperPostgresqlTests()
     {
-        _dbHelperPostgresql = new DbHelperPostgresql(_testConnectionString);
+        _dbContext = new PostgreSqlDbContext();
+        _dbHelperPostgresql = new DbHelperPostgresql(_testConnectionString, _dbContext);
     }
 
     private async Task EmptyDatabaseAsync()
@@ -97,7 +100,7 @@ public class DbHelperPostgresqlTests
                     Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
                     Assert.Equal(1, reader.GetInt32(0));
                     Assert.Equal("March", reader.GetString(1));
-                    Assert.Equal("{\"message\": \"Log entry\", \"severity\": \"info\"}", reader.GetString(2));
+                    Assert.Equal("{\"message\":\"Log entry\",\"severity\":\"info\"}", reader.GetString(2));
                 }
             }
             connection.Close();
@@ -139,7 +142,7 @@ public class DbHelperPostgresqlTests
                     Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
                     Assert.Equal(1, reader.GetInt32(0));
                     Assert.Equal("April", reader.GetString(1));
-                    Assert.Equal("{\"message\": \"Log entry\", \"severity\": \"info\"}", reader.GetString(2));
+                    Assert.Equal("{\"message\":\"Log entry\",\"severity\":\"info\"}", reader.GetString(2));
                 }
             }
             connection.Close();
@@ -179,6 +182,46 @@ public class DbHelperPostgresqlTests
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     Assert.False(reader.Read(), "Data found in the table dbo.Logs");
+                }
+            }
+            connection.Close();
+        }
+    }
+
+
+    // new tests for optie_3
+
+    [Fact]
+    public async void TestInsertListOfLogDataAsync()
+    {
+        // Arrange
+        await this.EmptyDatabaseAsync();
+
+        var logData = new List<Log>
+        {
+            new Log { Month = "March", LogData = "{\"message\": \"Log entry\", \"severity\": \"info\"}" },
+            new Log { Month = "April", LogData = "{\"message\": \"Log entry 2\", \"severity\": \"info\"}"}
+        };
+
+        // Act
+        await _dbHelperPostgresql.InsertListOfLogDataAsync(logData);
+
+        // Assert
+        using (var connection = new NpgsqlConnection(_testConnectionString))
+        {
+            await connection.OpenAsync();
+            string tableName = "dbo.Logs";
+            string commandText = $"SELECT * FROM \"{tableName}\";";
+            using (var command = new NpgsqlCommand(commandText, connection))
+            {
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
+                    Assert.Equal("March", reader.GetString(1));
+                    Assert.Equal("{\"message\": \"Log entry\", \"severity\": \"info\"}", reader.GetString(2));
+                    Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
+                    Assert.Equal("April", reader.GetString(1));
+                    Assert.Equal("{\"message\": \"Log entry 2\", \"severity\": \"info\"}", reader.GetString(2));
                 }
             }
             connection.Close();

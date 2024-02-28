@@ -1,24 +1,30 @@
 
 
 using System.Data;
+using DatabaseSync.Entities;
 using Npgsql;
 using Npgsql.Replication;
 
 public class DbHelperPostgresql
 {
-    private readonly string connectionString;
+    private readonly string _connectionString;
+    private readonly PostgreSqlDbContext _context;
 
-    // private static CDCTranslaterToPostgres cdcTranslaterToPostgres;
-
-    public DbHelperPostgresql(string connectionString)
+    public DbHelperPostgresql(string connectionString, PostgreSqlDbContext context)
     {
-        this.connectionString = connectionString;
-        // cdcTranslaterToPostgres = new CDCTranslaterToPostgres(); // later change to a instance of the actual class
+        _context = context;
+        this._connectionString = connectionString;
+    }
+
+    public async Task InsertListOfLogDataAsync(List<Log> logs)
+    {
+        _context.Logs.AddRange(logs);
+        await _context.SaveChangesAsync();
     }
 
     public async void CheckIfDatabaseExists()
     {
-        using (var connection = new NpgsqlConnection(connectionString))
+        using (var connection = new NpgsqlConnection(_connectionString))
         {
             await connection.OpenAsync();
 
@@ -47,25 +53,31 @@ public class DbHelperPostgresql
 
     public async Task EmptyDatabaseTableDboLogsAsync()
     {
-        string tableName = "dbo.Logs";
-        string commandText = $"DELETE FROM \"{tableName}\";";
-        using (var connection = new NpgsqlConnection(connectionString))
-        {
-            await connection.OpenAsync();
-
-            using (var command = new NpgsqlCommand(commandText, connection))
-            {
-                await command.ExecuteNonQueryAsync();
-            }
-
-            connection.Close();
-        }
+        _context.Logs.RemoveRange(_context.Logs);
+        await _context.SaveChangesAsync();
     }
+
+    // public async Task EmptyDatabaseTableDboLogsAsync()
+    // {
+    //     string tableName = "dbo.Logs";
+    //     string commandText = $"DELETE FROM \"{tableName}\";";
+    //     using (var connection = new NpgsqlConnection(_connectionString))
+    //     {
+    //         await connection.OpenAsync();
+
+    //         using (var command = new NpgsqlCommand(commandText, connection))
+    //         {
+    //             await command.ExecuteNonQueryAsync();
+    //         }
+
+    //         connection.Close();
+    //     }
+    // }
 
 
     public async Task CreateLogsTableAsync()
     {
-        using (var connection = new NpgsqlConnection(connectionString))
+        using (var connection = new NpgsqlConnection(_connectionString))
         {
             await connection.OpenAsync();
 

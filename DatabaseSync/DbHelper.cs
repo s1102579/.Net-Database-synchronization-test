@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.SqlClient;
 using DatabaseSync.Entities;
+using Microsoft.EntityFrameworkCore;
 
 public class DbHelper
 {
@@ -32,6 +33,12 @@ public class DbHelper
         }
     }
 
+    public async Task InsertListOfLogDataAsync(List<Log> logs)
+    {
+        _context.Logs.AddRange(logs);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task InsertLogDataAsync(string month, string logData)
     {
         var log = new Log
@@ -44,34 +51,39 @@ public class DbHelper
         await _context.SaveChangesAsync();
     }
 
-   public async Task UpdateLogDataAsync(string month, string logData, int Id)
-{
-    var log = await _context.Logs.FindAsync(Id);
-    if (log != null)
+    public async Task UpdateLogDataAsync(string month, string logData, int Id)
     {
-        log.Month = month;
-        log.LogData = logData;
-        await _context.SaveChangesAsync();
+        var log = await _context.Logs.FindAsync(Id);
+        if (log != null)
+        {
+            log.Month = month;
+            log.LogData = logData;
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            throw new Exception("Log not found");
+        }
     }
-    else
-    {
-        throw new Exception("Log not found");
-    }
-}
 
-public async Task DeleteLogDataAsync(int Id)
-{
-    var log = await _context.Logs.FindAsync(Id);
-    if (log != null)
+    public async Task DeleteLogDataAsync(int Id)
     {
-        _context.Logs.Remove(log);
-        await _context.SaveChangesAsync();
+        var log = await _context.Logs.FindAsync(Id);
+        if (log != null)
+        {
+            _context.Logs.Remove(log);
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            throw new Exception("Log not found");
+        }
     }
-    else
+
+    public async Task<List<Log>> GetDataFromLogsTableAsync()
     {
-        throw new Exception("Log not found");
+        return await _context.Logs.ToListAsync();
     }
-}
 
     public static async Task<DataSet> QueryCDCTablesAsync(string connectionString)
     {
@@ -139,64 +151,6 @@ public async Task DeleteLogDataAsync(int Id)
         }
     }
 
-    // public static async DataSet QueryCDCTables(string connectionString)
-    // {
-    //     using (var connection = new SqlConnection(connectionString))
-    //     {
-    //         await connection.OpenAsync();
-
-    //         // Select changes from CDC tables
-    //         string query = @"
-    //         SELECT
-    //             [__$operation],
-    //             [__$start_lsn],
-    //             [__$end_lsn],
-    //             [__$seqval],
-    //             [__$update_mask],
-    //             [Id],
-    //             [Month],
-    //             [LogData],
-    //             [__$command_id]
-    //         FROM
-    //             cdc.dbo_Logs_CT";
-
-    //         using (var command = new SqlCommand(query, connection))
-    //         {
-    //             var adapter = new SqlDataAdapter(command);
-    //             var dataSet = new DataSet();
-
-    //             // Fill the DataSet with changes from CDC tables
-    //             adapter.Fill(dataSet);
-
-    //             // Set the primary key for each DataTable in the DataSet
-    //             foreach (DataTable table in dataSet.Tables)
-    //             {
-    //                 table.TableName = "dbo.Logs"; // TODO temporary hardcoded, find out why the table name is "Table" and not "dbo.Logs
-    //                 if (table.Columns.Contains("__$start_lsn") && table.Columns.Contains("__$seqval") && table.Columns.Contains("__$operation"))
-    //                 {
-    //                     DataColumn? startLsnColumn = table.Columns["__$start_lsn"];
-    //                     DataColumn? seqvalColumn = table.Columns["__$seqval"];
-    //                     DataColumn? operationColumn = table.Columns["__$operation"];
-
-    //                     if (startLsnColumn != null && seqvalColumn != null && operationColumn != null)
-    //                     {
-    //                         table.PrimaryKey = new DataColumn[] { startLsnColumn, seqvalColumn, operationColumn };
-    //                     }
-    //                 }
-
-    //                 // Convert the operation column to an integer
-    //                 foreach (DataRow row in table.Rows)
-    //                 {
-    //                     int operation = Convert.ToInt32(row["__$operation"]);
-    //                     row["__$operation"] = operation;
-    //                 }
-    //             }
-    //             connection.Close();
-
-    //             return dataSet;
-    //         }
-    //     }
-    // }
     public async Task EmptyDatabaseTableDboLogsAsync()
     {
         using (var connection = new SqlConnection(connectionString))

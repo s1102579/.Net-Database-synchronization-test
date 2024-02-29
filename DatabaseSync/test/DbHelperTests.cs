@@ -171,7 +171,7 @@ public class DbHelperTests
         // Arrange
         await _dbHelper.EmptyDatabaseTableDboAuditLogsAsync();
         // Get csv file from the assets folder in the project directory path
-        string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv"; // Change to Reletive path eventually
+        string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv"; // TODO Change to Relative path eventually
 
         // Act
         await _dbHelper.AddRowsToAuditLogTableWithCSVFileAsync(csvFilePath);

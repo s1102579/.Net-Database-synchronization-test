@@ -2,6 +2,8 @@
 
 using System.Data;
 using DatabaseSync.Entities;
+using EFCore.BulkExtensions;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Npgsql.Replication;
 
@@ -20,6 +22,11 @@ public class DbHelperPostgresql
     {
         _context.Logs.AddRange(logs);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task InsertListOfAuditLogDataAsync(List<AuditLog> auditLogs)
+    {
+        await _context.BulkInsertAsync(auditLogs);
     }
 
     public async void CheckIfDatabaseExists()
@@ -55,5 +62,10 @@ public class DbHelperPostgresql
     {
         _context.Logs.RemoveRange(_context.Logs);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task EmptyDatabaseTableAudtLogsAsync()
+    {
+        await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"AuditLog_20230101\"");
     }
 }

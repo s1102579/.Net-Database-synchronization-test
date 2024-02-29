@@ -1,17 +1,19 @@
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
+using CsvHelper;
+using CsvHelper.Configuration;
 using DatabaseSync.Entities;
+using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 
 public class DbHelper
 {
     private readonly SqlServerDbContext _context;
-    private readonly string connectionString = "Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
 
-    public DbHelper(SqlServerDbContext context, string connectionString)
+    public DbHelper(SqlServerDbContext context)
     {
         _context = context;
-        this.connectionString = connectionString;
     }
 
     public async Task InsertListOfLogDataAsync(List<Log> logs)
@@ -67,10 +69,74 @@ public class DbHelper
     }
 
 
-    public async Task EmptyDatabaseTableDboLogsAsync()
+    // public async Task EmptyDatabaseTableDboLogsAsync()
+    // {
+    //     _context.Logs.RemoveRange(_context.Logs);
+    //     await _context.SaveChangesAsync();
+    // }
+
+    public async Task EmptyDatabaseTableDboAuditLogsAsync()
     {
-        _context.Logs.RemoveRange(_context.Logs);
+        await _context.Database.ExecuteSqlRawAsync("DELETE FROM AuditLog_20230101");
+    }
+
+    public async Task<List<AuditLog>> GetDataFromAuditLogsTableAsync()
+    {
+        return await _context.AuditLogs.ToListAsync();
+    }
+
+    public async Task InsertListOfAuditLogDataAsync(List<AuditLog> logs)
+    {
+        _context.AuditLogs.AddRange(logs);
         await _context.SaveChangesAsync();
     }
 
+    public async Task InsertAuditLogDataAsync(AuditLog log)
+    {
+        await _context.AuditLogs.AddAsync(log);
+        await _context.SaveChangesAsync();
+    }
+
+public async Task AddRowsToAuditLogTableWithCSVFileAsync(string path)
+{
+    var auditLogs = new List<AuditLog>();
+
+    var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+    {
+        HasHeaderRecord = false, // Set to true if your CSV file has a header
+        Delimiter = ",",
+        BadDataFound = null
+    };
+
+    using (var reader = new StreamReader(path))
+    using (var csv = new CsvReader(reader, config))
+    {
+        while (await csv.ReadAsync())
+        {
+            var accountId = csv.GetField(0);
+            var pUserId = csv.GetField(1);
+            var impersonatedUserId = csv.GetField(2);
+            var type = csv.GetField(3);
+            var table = csv.GetField(4);
+            var log = csv.GetField(5);
+            var created = csv.GetField(6);
+
+            Console.WriteLine(accountId + " " + pUserId + " " + impersonatedUserId + " " + type + " " + table + " " + log + " " + created);
+
+            var auditLog = new AuditLog
+            {
+                AccountId = accountId == "NULL" ? (int?)null : int.Parse(accountId),
+                PUser_Id = pUserId == "NULL" ? (int?)null : int.Parse(pUserId),
+                ImpersonatedUser_Id = impersonatedUserId == "NULL" ? (int?)null : int.Parse(impersonatedUserId),
+                Type = byte.Parse(type),
+                Table = table,
+                Log = log,
+                Created = DateTime.Parse(created)
+            };
+
+            auditLogs.Add(auditLog);
+        }
+    }
+    await _context.BulkInsertAsync(auditLogs); // zou veel tijd moeten schelen met normale insert zoals de _context.SaveChangesAsync()
+}
 }

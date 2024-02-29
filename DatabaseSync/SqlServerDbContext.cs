@@ -4,8 +4,9 @@ using Microsoft.EntityFrameworkCore;
 public class SqlServerDbContext : DbContext
 {
     public DbSet<Log> Logs { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
 
-    // Singleton pattern not neccesary in .net api application you will add the context to the services and it will be a singleton
+    // Singleton pattern not necessary in .net api application you will add the context to the services and it will be a singleton
     private static SqlServerDbContext? _instance;
 
     public static SqlServerDbContext Instance
@@ -15,7 +16,7 @@ public class SqlServerDbContext : DbContext
             if (_instance == null)
             {
                 var optionsBuilder = new DbContextOptionsBuilder<SqlServerDbContext>();
-                optionsBuilder.UseSqlServer("Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;TrustServerCertificate=True;");
+                optionsBuilder.UseSqlServer("Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;TrustServerCertificate=True;");
                 _instance = new SqlServerDbContext(optionsBuilder.Options);
             }
             return _instance;
@@ -26,6 +27,11 @@ public class SqlServerDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlServer("Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;TrustServerCertificate=True;");
+        optionsBuilder.UseSqlServer("Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;TrustServerCertificate=True;");
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AuditLog>().HasNoKey();
     }
 }

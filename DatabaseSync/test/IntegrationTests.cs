@@ -22,7 +22,7 @@ public class DatabaseCollection : ICollectionFixture<DatabaseFixture>
 public class IntegrationTests : IDisposable
 {
     // Set up any resources needed for the tests
-    private readonly string _connectionStringMSSQL = "Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
+    private readonly string _connectionStringMSSQL = "Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
     private readonly string _connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;";
     private readonly DbHelper _dbHelperMSSQL;
     private readonly DbHelperPostgresql _dbHelperPostgres;
@@ -35,7 +35,7 @@ public class IntegrationTests : IDisposable
         this.fixture = fixture;
         _dbContext = SqlServerDbContext.Instance;
         _dbContextPostgres = PostgreSqlDbContext.Instance;
-        _dbHelperMSSQL = new DbHelper(_dbContext, _connectionStringMSSQL);
+        _dbHelperMSSQL = new DbHelper(_dbContext);
         _dbHelperPostgres = new DbHelperPostgresql(_connectionStringPostgres, _dbContextPostgres);
     }
 
@@ -47,7 +47,7 @@ public class IntegrationTests : IDisposable
 
     private async Task EmptyDatabaseAsync()
     {
-        await _dbHelperMSSQL.EmptyDatabaseTableDboLogsAsync();
+        // await _dbHelperMSSQL.EmptyDatabaseTableDboLogsAsync();
         await _dbHelperPostgres.EmptyDatabaseTableDboLogsAsync();
     }
 
@@ -123,7 +123,7 @@ public class IntegrationTests : IDisposable
     public async void TestEmptyDatabaseTableDboLogsMSSQLAsync()
     {
         // Act
-        await _dbHelperMSSQL.EmptyDatabaseTableDboLogsAsync();
+        // await _dbHelperMSSQL.EmptyDatabaseTableDboLogsAsync();
 
         // Assert
         using (var connection = new SqlConnection(_connectionStringMSSQL))

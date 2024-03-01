@@ -67,7 +67,7 @@ public class DbHelperPostgresql
         await _context.SaveChangesAsync();
     }
 
-    public async Task EmptyDatabaseTableAudtLogsAsync()
+    public async Task EmptyDatabaseTableAuditLogsAsync()
     {
         await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"AuditLog_20230101\"");
     }

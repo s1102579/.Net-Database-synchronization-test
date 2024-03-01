@@ -68,13 +68,6 @@ public class DbHelper
         return await _context.Logs.ToListAsync();
     }
 
-
-    // public async Task EmptyDatabaseTableDboLogsAsync()
-    // {
-    //     _context.Logs.RemoveRange(_context.Logs);
-    //     await _context.SaveChangesAsync();
-    // }
-
     public async Task EmptyDatabaseTableDboAuditLogsAsync()
     {
         await _context.Database.ExecuteSqlRawAsync("DELETE FROM AuditLog_20230101");

@@ -111,6 +111,100 @@ public class IntegrationTests : IDisposable
         }
     }
 
+
+
+    [Fact, TestPriority(5)]
+    public async void TestEmptyDatabaseTableAuditLogPostgresAsync()
+    {
+        // Act
+        await _dbHelperPostgres.EmptyDatabaseTableAudtLogsAsync();
+
+        // Assert
+        using (var connection = new NpgsqlConnection(_connectionStringPostgres))
+        {
+            await connection.OpenAsync();
+            string tableName = "AuditLog_20230101";
+            string commandText = $"SELECT COUNT(*) FROM \"{tableName}\";";
+            using (var command = new NpgsqlCommand(commandText, connection))
+            {
+                long rowCount = (long)(await command.ExecuteScalarAsync() ?? 0);
+                Assert.Equal(0, rowCount);
+            }
+            connection.Close();
+        }
+    }
+
+    [Fact, TestPriority(6)]
+    public async void TestAddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync()
+    {
+        // Arrange
+        await _dbHelperPostgres.EmptyDatabaseTableAudtLogsAsync();
+        string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv"; // TODO Change to Relative path eventually
+
+        // Act
+        await _dbHelperPostgres.AddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync(csvFilePath);
+
+        // Assert
+         using (var connection = new NpgsqlConnection(_connectionStringPostgres))
+        {
+            await connection.OpenAsync();
+            using (var command = new NpgsqlCommand("SELECT COUNT(*) FROM \"AuditLog_20230101\"", connection))
+            {
+                long rowCount = (long) (await command.ExecuteScalarAsync() ?? 0);
+                Assert.Equal(1237548 - 13705, rowCount); // 13705 is the amount of rows with januari 31st 2023
+            }
+            connection.Close();
+        }
+    }
+
+    [Fact, TestPriority(7)]
+    public async void TestSyncOneDayOfDataWithPostgresAsync() // The postgresql database is one day behind the source database and needs to be synced with the previous day's data
+    {
+        // Arrange
+        string day = "2023-01-31";
+
+        // Act
+        List<AuditLog> auditLogs = await _dbHelperMSSQL.GetOneDayOfDataFromAuditLogsTableAsync(day);
+        await _dbHelperPostgres.InsertListOfAuditLogDataAsync(auditLogs);
+
+        // Assert
+        using (var connection = new NpgsqlConnection(_connectionStringPostgres))
+        {
+            await connection.OpenAsync();
+            using (var command = new NpgsqlCommand("SELECT COUNT(*) FROM \"AuditLog_20230101\"", connection))
+            {
+                long rowCount = (long) (await command.ExecuteScalarAsync() ?? 0);
+                Assert.Equal(1237548, rowCount); // Assert that 
+            }
+            connection.Close();
+        }
+    }
+
+
+
+
+    [Fact, TestPriority(8)]
+    public async void TestEmptyDatabaseTableDboAuditLogsMSSQLAsync()
+    {
+        // Act
+        await _dbHelperMSSQL.EmptyDatabaseTableDboAuditLogsAsync();
+
+        // Assert
+        using (var connection = new SqlConnection(_connectionStringMSSQL))
+        {
+            await connection.OpenAsync();
+            using (var command = new SqlCommand("SELECT * FROM AuditLog_20230101", connection))
+            {
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    Assert.False(reader.Read(), "Data found in the table AuditLog_20230101");
+                }
+            }
+            connection.Close();
+        }
+    }
+    
+
     // [Fact, TestPriority(1)]
     // public async Task TestaddingLogDataToMSSQLAsync()
     // {

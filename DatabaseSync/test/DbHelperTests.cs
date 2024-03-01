@@ -166,6 +166,21 @@ public class DbHelperTests
     // }
 
     [Fact]
+    public async Task TestGetOneDayOfDataFromAuditLogsTableAsync()
+    {
+        // Arrange
+        await _dbHelper.EmptyDatabaseTableDboAuditLogsAsync();
+        await _dbHelper.AddRowsToAuditLogTableWithCSVFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv");
+        string day = "2023-01-31";
+
+        // Act
+        var result = await _dbHelper.GetOneDayOfDataFromAuditLogsTableAsync(day);
+
+        // Assert
+        Assert.Equal(13705, result.Count);
+    }
+
+    [Fact]
     public async Task TestAddRowsToAuditLogTableWithCSVFileAsync() // 49 seconds with BulkInsert. 
     {
         // Arrange

@@ -5,7 +5,6 @@ using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using DatabaseSync.Entities;
-using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Npgsql.Replication;

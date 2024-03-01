@@ -47,10 +47,6 @@
               "target": "Package",
               "version": "[31.0.0, )"
             },
-            "EFCore.BulkExtensions": {
-              "target": "Package",
-              "version": "[8.0.2, )"
-            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[8.0.2, )"

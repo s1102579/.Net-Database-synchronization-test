@@ -3,7 +3,6 @@ using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using DatabaseSync.Entities;
-using EFCore.BulkExtensions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -96,8 +95,6 @@ public class DbHelper
             FROM AuditLog_20230101
             WHERE CONVERT(VARCHAR, Created, 23) LIKE '{day}%'").ToListAsync();
     }
-
-
 
     public async Task AddRowsToAuditLogTableWithCSVFileAsync(string path) // runtime is: 27s with SQLBulkCopy
     {

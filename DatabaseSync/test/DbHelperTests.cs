@@ -34,7 +34,7 @@ public class DbHelperTests
     }
 
     [Fact]
-    public async Task TestAddRowsToAuditLogTableWithCSVFileAsync() // 49 seconds with BulkInsert. 
+    public async Task TestAddRowsToAuditLogTableWithCSVFileAsync() // 45 seconds with BulkInsert. // 39 minutes and 32 seconds with SQLRawAsync // 27 seconds with SQLBulkCopy
     {
         // Arrange
         await _dbHelper.EmptyDatabaseTableDboAuditLogsAsync();
@@ -50,7 +50,8 @@ public class DbHelperTests
             await connection.OpenAsync();
             using (var command = new SqlCommand("SELECT COUNT(*) FROM AuditLog_20230101", connection))
             {
-                var rowCount = (int)await command.ExecuteScalarAsync();
+                object result = await command.ExecuteScalarAsync() ?? 0;
+                long rowCount = result != null ? Convert.ToInt64(result) : 0;
                 Assert.Equal(1237548, rowCount);
             }
             connection.Close();

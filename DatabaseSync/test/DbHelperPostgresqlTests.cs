@@ -18,7 +18,7 @@ public class DbHelperPostgresqlTests
     }
 
     [Fact]
-    public async Task TestAddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync()
+    public async Task TestAddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync() // bulkinsert runtime: 1m 2s  // runtime is: 20s with NPgsql binary import
     {
         // Arrange
         await _dbHelperPostgresql.EmptyDatabaseTableAuditLogsAsync();
@@ -36,6 +36,25 @@ public class DbHelperPostgresqlTests
             {
                 long rowCount = (long)(await command.ExecuteScalarAsync() ?? 0);
                 Assert.Equal(1237548 - 13705, rowCount); // 13705 is the amount of rows with januari 31st 2023
+            }
+            connection.Close();
+        }
+    }
+
+    [Fact]
+    public async Task TestEmptyDatabaseTableAuditLogPostgresAsync()
+    {
+        // Act
+        await _dbHelperPostgresql.EmptyDatabaseTableAuditLogsAsync();
+
+        // Assert
+        using (var connection = new NpgsqlConnection(_testConnectionString))
+        {
+            await connection.OpenAsync();
+            using (var command = new NpgsqlCommand("SELECT COUNT(*) FROM \"AuditLog_20230101\"", connection))
+            {
+                long rowCount = (long)(await command.ExecuteScalarAsync() ?? 0);
+                Assert.Equal(0, rowCount);
             }
             connection.Close();
         }

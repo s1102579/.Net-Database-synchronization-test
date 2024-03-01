@@ -1,10 +1,10 @@
 using System.Data;
-using System.Data.SqlClient;
 using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using DatabaseSync.Entities;
 using EFCore.BulkExtensions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 public class DbHelper
@@ -97,13 +97,23 @@ public class DbHelper
             WHERE CONVERT(VARCHAR, Created, 23) LIKE '{day}%'").ToListAsync();
     }
 
-    public async Task AddRowsToAuditLogTableWithCSVFileAsync(string path) // for testing purposes in reality this comes directly from the database
+
+
+    public async Task AddRowsToAuditLogTableWithCSVFileAsync(string path) // runtime is: 27s with SQLBulkCopy
     {
-        var auditLogs = new List<AuditLog>();
+        var auditLogs = new DataTable();
+
+        auditLogs.Columns.Add("AccountId", typeof(int));
+        auditLogs.Columns.Add("PUser_Id", typeof(int));
+        auditLogs.Columns.Add("ImpersonatedUser_Id", typeof(int));
+        auditLogs.Columns.Add("Type", typeof(byte));
+        auditLogs.Columns.Add("Table", typeof(string));
+        auditLogs.Columns.Add("Log", typeof(string));
+        auditLogs.Columns.Add("Created", typeof(DateTime));
 
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
-            HasHeaderRecord = false, // Set to true if your CSV file has a header
+            HasHeaderRecord = false,
             Delimiter = ",",
             BadDataFound = null
         };
@@ -121,24 +131,122 @@ public class DbHelper
                 var log = csv.GetField(5);
                 var created = csv.GetField(6);
 
-                Console.WriteLine(accountId + " " + pUserId + " " + impersonatedUserId + " " + type + " " + table + " " + log + " " + created);
+                var row = auditLogs.NewRow();
+                row["AccountId"] = accountId == "NULL" ? (object)DBNull.Value : int.Parse(accountId);
+                row["PUser_Id"] = pUserId == "NULL" ? (object)DBNull.Value : int.Parse(pUserId);
+                row["ImpersonatedUser_Id"] = impersonatedUserId == "NULL" ? (object)DBNull.Value : int.Parse(impersonatedUserId);
+                row["Type"] = byte.Parse(type);
+                row["Table"] = table;
+                row["Log"] = log;
+                row["Created"] = DateTime.Parse(created);
 
-                var auditLog = new AuditLog
-                {
-                    AccountId = accountId == "NULL" ? (int?)null : int.Parse(accountId),
-                    PUser_Id = pUserId == "NULL" ? (int?)null : int.Parse(pUserId),
-                    ImpersonatedUser_Id = impersonatedUserId == "NULL" ? (int?)null : int.Parse(impersonatedUserId),
-                    Type = byte.Parse(type),
-                    Table = table,
-                    Log = log,
-                    Created = DateTime.Parse(created)
-                };
-
-                auditLogs.Add(auditLog);
+                auditLogs.Rows.Add(row);
             }
         }
-        await _context.BulkInsertAsync(auditLogs); // zou veel tijd moeten schelen met normale insert zoals de _context.SaveChangesAsync()
+
+        using (var sqlBulk = new SqlBulkCopy("Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;TrustServerCertificate=True;")) // temp hardcode connection string
+        {
+            sqlBulk.DestinationTableName = "AuditLog_20230101";
+            await sqlBulk.WriteToServerAsync(auditLogs);
+        }
     }
 
-    
+    // public async Task AddRowsToAuditLogTableWithCSVFileAsync(string path) // runtime is: 39 minutes and 32 seconds with SQLRawAsync
+    // {
+    //     var auditLogs = new List<AuditLog>();
+
+    //     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+    //     {
+    //         HasHeaderRecord = false,
+    //         Delimiter = ",",
+    //         BadDataFound = null
+    //     };
+
+    //     using (var reader = new StreamReader(path))
+    //     using (var csv = new CsvReader(reader, config))
+    //     {
+    //         while (await csv.ReadAsync())
+    //         {
+    //             var accountId = csv.GetField(0);
+    //             var pUserId = csv.GetField(1);
+    //             var impersonatedUserId = csv.GetField(2);
+    //             var type = csv.GetField(3);
+    //             var table = csv.GetField(4);
+    //             var log = csv.GetField(5);
+    //             var created = csv.GetField(6);
+
+    //             var auditLog = new AuditLog
+    //             {
+    //                 AccountId = accountId == "NULL" ? (int?)null : int.Parse(accountId),
+    //                 PUser_Id = pUserId == "NULL" ? (int?)null : int.Parse(pUserId),
+    //                 ImpersonatedUser_Id = impersonatedUserId == "NULL" ? (int?)null : int.Parse(impersonatedUserId),
+    //                 Type = byte.Parse(type),
+    //                 Table = table,
+    //                 Log = log,
+    //                 Created = DateTime.Parse(created)
+    //             };
+
+    //             auditLogs.Add(auditLog);
+    //         }
+    //     }
+
+    //     foreach (var auditLog in auditLogs)
+    //     {
+    //         var sql = "INSERT INTO AuditLog_20230101 (AccountId, PUser_Id, ImpersonatedUser_Id, [Type], [Table], [Log], Created) VALUES (@AccountId, @PUser_Id, @ImpersonatedUser_Id, @Type, @Table, @Log, @Created)";
+    //         await _context.Database.ExecuteSqlRawAsync(sql, new[] {
+    //         new SqlParameter("@AccountId", auditLog.AccountId ?? (object)DBNull.Value),
+    //         new SqlParameter("@PUser_Id", auditLog.PUser_Id ?? (object)DBNull.Value),
+    //         new SqlParameter("@ImpersonatedUser_Id", auditLog.ImpersonatedUser_Id ?? (object)DBNull.Value),
+    //         new SqlParameter("@Type", auditLog.Type),
+    //         new SqlParameter("@Table", auditLog.Table),
+    //         new SqlParameter("@Log", auditLog.Log),
+    //         new SqlParameter("@Created", auditLog.Created)
+    //     });
+    //     }
+    // }
+
+
+    // public async Task AddRowsToAuditLogTableWithCSVFileAsync(string path) // runtime is: 45 seconds with BulkInsert.
+    // {
+    //     var auditLogs = new List<AuditLog>();
+
+    //     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+    //     {
+    //         HasHeaderRecord = false,
+    //         Delimiter = ",",
+    //         BadDataFound = null
+    //     };
+
+    //     using (var reader = new StreamReader(path))
+    //     using (var csv = new CsvReader(reader, config))
+    //     {
+    //         while (await csv.ReadAsync())
+    //         {
+    //             var accountId = csv.GetField(0);
+    //             var pUserId = csv.GetField(1);
+    //             var impersonatedUserId = csv.GetField(2);
+    //             var type = csv.GetField(3);
+    //             var table = csv.GetField(4);
+    //             var log = csv.GetField(5);
+    //             var created = csv.GetField(6);
+
+    //             var auditLog = new AuditLog
+    //             {
+    //                 AccountId = accountId == "NULL" ? (int?)null : int.Parse(accountId),
+    //                 PUser_Id = pUserId == "NULL" ? (int?)null : int.Parse(pUserId),
+    //                 ImpersonatedUser_Id = impersonatedUserId == "NULL" ? (int?)null : int.Parse(impersonatedUserId),
+    //                 Type = byte.Parse(type),
+    //                 Table = table,
+    //                 Log = log,
+    //                 Created = DateTime.Parse(created)
+    //             };
+
+    //             auditLogs.Add(auditLog);
+    //         }
+    //     }
+
+    //     await _context.BulkInsertAsync(auditLogs);
+    // }
+
+
 }

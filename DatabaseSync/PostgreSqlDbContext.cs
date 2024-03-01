@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 public class PostgreSqlDbContext : DbContext
 {
     public DbSet<Log> Logs { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
 
     private static PostgreSqlDbContext? _instance;
 
@@ -13,6 +14,7 @@ public class PostgreSqlDbContext : DbContext
         {
             if (_instance == null)
             {
+                AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true); // in api application you will add this to the startup
                 var optionsBuilder = new DbContextOptionsBuilder<PostgreSqlDbContext>();
                 optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;TrustServerCertificate=True;");
                 _instance = new PostgreSqlDbContext(optionsBuilder.Options);
@@ -25,6 +27,7 @@ public class PostgreSqlDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AuditLog>().HasNoKey();
         modelBuilder.Entity<Log>().ToTable("dbo.Logs", schema: "public");
     }
 

@@ -17,88 +17,28 @@ public class DbHelperPostgresqlTests
         _dbHelperPostgresql = new DbHelperPostgresql(_testConnectionString, _dbContext);
     }
 
-    private async Task EmptyDatabaseAsync()
-    {
-        await _dbHelperPostgresql.EmptyDatabaseTableDboLogsAsync();
-    }
-
-    private async Task AddRowToDboLogs()
-    {
-        string tableName = "dbo.Logs";
-        using (var connection = new NpgsqlConnection(_testConnectionString))
-        {
-            await connection.OpenAsync();
-            // using var command = new NpgsqlCommand($"INSERT INTO \"{tableName}\" (\"Month\", \"LogData\") VALUES ('March', '{{\"message\":\"Log entry\",\"severity\":\"info\"}}')", connection);
-            using var command = new NpgsqlCommand($"INSERT INTO \"{tableName}\" (\"Id\", \"Month\", \"LogData\") VALUES (1, 'March', '{{\"message\":\"Log entry\",\"severity\":\"info\"}}')", connection);
-            await command.ExecuteNonQueryAsync();
-            connection.Close();
-        }
-    }
-
     [Fact]
-    public async Task TestEmptyDatabaseTableDboLogsAsync()
+    public async Task TestAddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync()
     {
         // Arrange
-        await this.EmptyDatabaseAsync();
-        await this.AddRowToDboLogs();
+        await _dbHelperPostgresql.EmptyDatabaseTableAuditLogsAsync();
+        // Get csv file from the assets folder in the project directory path
+        string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv"; // TODO Change to Relative path eventually
 
         // Act
-        await _dbHelperPostgresql.EmptyDatabaseTableDboLogsAsync();
-        // Thread.Sleep(4000);
+        await _dbHelperPostgresql.AddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync(csvFilePath);
 
         // Assert
         using (var connection = new NpgsqlConnection(_testConnectionString))
         {
             await connection.OpenAsync();
-            string tableName = "dbo.Logs";
-            string commandText = $"SELECT * FROM \"{tableName}\";";
-            using (var command = new NpgsqlCommand(commandText, connection))
+            using (var command = new NpgsqlCommand("SELECT COUNT(*) FROM \"AuditLog_20230101\"", connection))
             {
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    Assert.False(reader.Read(), "Data found in the table dbo.Logs");
-                }
+                long rowCount = (long)(await command.ExecuteScalarAsync() ?? 0);
+                Assert.Equal(1237548 - 13705, rowCount); // 13705 is the amount of rows with januari 31st 2023
             }
             connection.Close();
         }
     }
-
-    [Fact]
-    public async void TestInsertListOfLogDataAsync()
-    {
-        // Arrange
-        await this.EmptyDatabaseAsync();
-
-        var logData = new List<Log>
-        {
-            new Log { Month = "March", LogData = "{\"message\": \"Log entry\", \"severity\": \"info\"}" },
-            new Log { Month = "April", LogData = "{\"message\": \"Log entry 2\", \"severity\": \"info\"}"}
-        };
-
-        // Act
-        await _dbHelperPostgresql.InsertListOfLogDataAsync(logData);
-
-        // Assert
-        using (var connection = new NpgsqlConnection(_testConnectionString))
-        {
-            await connection.OpenAsync();
-            string tableName = "dbo.Logs";
-            string commandText = $"SELECT * FROM \"{tableName}\";";
-            using (var command = new NpgsqlCommand(commandText, connection))
-            {
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
-                    Assert.Equal("March", reader.GetString(1));
-                    Assert.Equal("{\"message\": \"Log entry\", \"severity\": \"info\"}", reader.GetString(2));
-                    Assert.True(reader.Read(), "Data is not found in the table dbo.Logs");
-                    Assert.Equal("April", reader.GetString(1));
-                    Assert.Equal("{\"message\": \"Log entry 2\", \"severity\": \"info\"}", reader.GetString(2));
-                }
-            }
-            connection.Close();
-        }
-    }
-
 
 }

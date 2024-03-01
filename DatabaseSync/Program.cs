@@ -4,7 +4,7 @@ using System.Data;
 // Prerequisites: MSSQL database needs to be set up with CDC enabled and have a table called Logs with columns Month and LogData
 // Prerequisites: PostgreSQL database needs to be set up with a table called dbo.Logs with columns Month and LogData
 // Prerequisites: bot databases need to start with the same values in the Logs table. preferably empty
-string connectionStringMSSQL = "Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
+string connectionStringMSSQL = "Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
 string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;";
 // var dbHelper = new DbHelper(connectionStringMSSQL);
 // var dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres);
@@ -53,13 +53,13 @@ string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Pa
 
 // DbHelperPostgresql.ApplyChangesToPostgreSQL(dataChanges, connectionStringPostgres); // Apply the changes to the PostgreSQL database
 
-// //check sqlServer connection
-// using (var context = new SqlServerDbContext())
+//check sqlServer connection
+// using (var context = SqlServerDbContext.Instance)
 // {
 //     try
 //     {
 //         // Try to query the database
-//         var logs = context.Logs.ToList();
+//         var logs = context.AuditLogs.ToList();
 //         Console.WriteLine("Connection to database successful.");
 //     }
 //     catch (Exception ex)
@@ -70,19 +70,24 @@ string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Pa
 //     }
 // }
 
-// check postgres connection
-using (var contextPSQL = PostgreSqlDbContext.Instance)
-{
-    try
-    {
-        // Try to query the database
-        var logs = contextPSQL.Logs.ToList();
-        Console.WriteLine("Connection to database successful.");
-    }
-    catch (Exception ex)
-    {
-        // If an exception is thrown, the connection failed
-        Console.WriteLine("Connection to database failed.");
-        Console.WriteLine("Error details: " + ex.Message);
-    }
-}
+DbHelper dbHelper = new DbHelper(SqlServerDbContext.Instance);
+await dbHelper.AddRowsToAuditLogTableWithCSVFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv");
+
+// // check postgres connection
+// using (var contextPSQL = PostgreSqlDbContext.Instance)
+// {
+//     try
+//     {
+//         // Try to query the database
+//         var logs = contextPSQL.Logs.ToList();
+//         Console.WriteLine("Connection to database successful.");
+//     }
+//     catch (Exception ex)
+//     {
+//         // If an exception is thrown, the connection failed
+//         Console.WriteLine("Connection to database failed.");
+//         Console.WriteLine("Error details: " + ex.Message);
+//     }
+// }
+
+

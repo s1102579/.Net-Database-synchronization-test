@@ -1,11 +1,12 @@
 // Database logic
 using System.Data;
+using DatabaseSync.Entities;
 
 // Prerequisites: MSSQL database needs to be set up with CDC enabled and have a table called Logs with columns Month and LogData
 // Prerequisites: PostgreSQL database needs to be set up with a table called dbo.Logs with columns Month and LogData
 // Prerequisites: bot databases need to start with the same values in the Logs table. preferably empty
 string connectionStringMSSQL = "Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
-string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;";
+string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;TrustServerCertificate=True;";
 // var dbHelper = new DbHelper(connectionStringMSSQL);
 // var dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres);
 
@@ -70,8 +71,14 @@ string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Pa
 //     }
 // }
 
-DbHelper dbHelper = new DbHelper(SqlServerDbContext.Instance);
-await dbHelper.AddRowsToAuditLogTableWithCSVFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv");
+// DbHelper dbHelper = new DbHelper(SqlServerDbContext.Instance);
+// await dbHelper.AddRowsToAuditLogTableWithCSVFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv");
+
+DbHelperPostgresql dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres, PostgreSqlDbContext.Instance);
+List<AuditLog> logs = await dbHelperPostgres.GetAllDataFromAuditLogsTableAsync();
+await dbHelperPostgres.SplitDataUpInMultipleOwnDatabasesAsync(logs);
+await dbHelperPostgres.InsertDataIntoDatabasesAsync(logs);
+
 
 // // check postgres connection
 // using (var contextPSQL = PostgreSqlDbContext.Instance)

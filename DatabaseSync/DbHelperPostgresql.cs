@@ -96,6 +96,99 @@ public class DbHelperPostgresql
         await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"AuditLog_20230101\"");
     }
 
+    public async Task<List<AuditLog>> GetAllDataFromAuditLogsTableAsync()
+    {
+        return await _context.AuditLogs.ToListAsync();
+    }
+
+    public async Task SplitDataUpInMultipleOwnDatabasesAsync(List<AuditLog> auditLogs)
+    {
+        string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
+        HashSet<int> processedAccountIds = new HashSet<int>();
+        foreach (var auditLog in auditLogs)
+        {
+            if (auditLog.AccountId.HasValue && !processedAccountIds.Contains(auditLog.AccountId.Value))
+            {
+                processedAccountIds.Add(auditLog.AccountId.Value);
+                string dbName = $"\"AuditLog_{auditLog.AccountId.Value}\"";
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    // Check if database exists
+                    var command = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName.Replace("\"", "")}'", connection);
+                    var dbExists = await command.ExecuteScalarAsync() != null;
+
+                    if (!dbExists)
+                    {
+                        // Create database
+                        command = new NpgsqlCommand($"CREATE DATABASE {dbName}", connection);
+                        await command.ExecuteNonQueryAsync();
+
+                        // Connect to the new database
+                        var dbConnection = new NpgsqlConnection(connectionString + $"Database={dbName};");
+                        await dbConnection.OpenAsync();
+
+                        // Create table
+                        string createTableQuery = @"
+                    CREATE TABLE ""AuditLog"" (
+                        ""PUser_Id"" integer,
+                        ""ImpersonatedUser_Id"" integer,
+                        ""Type"" bytea,
+                        ""Table"" varchar(128),
+                        ""Log"" text,
+                        ""Created"" timestamp
+                    );";
+
+                        command = new NpgsqlCommand(createTableQuery, dbConnection);
+                        await command.ExecuteNonQueryAsync();
+
+                        await dbConnection.CloseAsync();
+                    }
+
+                    await connection.CloseAsync();
+                }
+            }
+        }
+    }
+
+    public async Task InsertDataIntoDatabasesAsync(List<AuditLog> auditLogs)
+    {
+        string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
+        var groupedAuditLogs = auditLogs.GroupBy(a => a.AccountId);
+
+        foreach (var group in groupedAuditLogs)
+        {
+            Console.WriteLine($"Processing account {group.Key}");
+            if (group.Key.HasValue)
+            {
+                string dbName = $"\"AuditLog_{group.Key.Value}\"";
+                using (var connection = new NpgsqlConnection(connectionString + $"Database={dbName};"))
+                {
+                    await connection.OpenAsync();
+
+                    using (var writer = connection.BeginBinaryImport("COPY \"AuditLog\" (\"PUser_Id\", \"ImpersonatedUser_Id\", \"Type\", \"Table\", \"Log\", \"Created\") FROM STDIN (FORMAT BINARY)"))
+                    {
+                        foreach (var auditLog in group)
+                        {
+                            writer.StartRow();
+                            writer.Write(auditLog.PUser_Id, NpgsqlTypes.NpgsqlDbType.Integer);
+                            writer.Write(auditLog.ImpersonatedUser_Id, NpgsqlTypes.NpgsqlDbType.Integer);
+                            writer.Write(auditLog.Type, NpgsqlTypes.NpgsqlDbType.Smallint);
+                            writer.Write(auditLog.Table, NpgsqlTypes.NpgsqlDbType.Text);
+                            writer.Write(auditLog.Log, NpgsqlTypes.NpgsqlDbType.Text);
+                            writer.Write(auditLog.Created, NpgsqlTypes.NpgsqlDbType.Timestamp);
+                        }
+
+                        await writer.CompleteAsync();
+                    }
+
+                    await connection.CloseAsync();
+                }
+            }
+        }
+    }
+
     public async Task AddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync(string path)
     {
         var auditLogs = new DataTable();

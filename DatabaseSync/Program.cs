@@ -74,10 +74,43 @@ string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Pa
 // DbHelper dbHelper = new DbHelper(SqlServerDbContext.Instance);
 // await dbHelper.AddRowsToAuditLogTableWithCSVFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv");
 
-DbHelperPostgresql dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres, PostgreSqlDbContext.Instance);
-List<AuditLog> logs = await dbHelperPostgres.GetAllDataFromAuditLogsTableAsync();
-await dbHelperPostgres.SplitDataUpInMultipleOwnDatabasesAsync(logs);
-await dbHelperPostgres.InsertDataIntoDatabasesAsync(logs);
+// // split data ip in multiple databases in Postgres
+// DbHelperPostgresql dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres, PostgreSqlDbContext.Instance);
+// List<AuditLog> logs = await dbHelperPostgres.GetAllDataFromAuditLogsTableAsync();
+// await dbHelperPostgres.SplitDataUpInMultipleOwnDatabasesAsync(logs);
+// await dbHelperPostgres.InsertDataIntoDatabasesAsync(logs);
+
+// // count the amount of unique JSON structures in the Log column
+DbHelper dbHelper = new DbHelper(SqlServerDbContext.Instance);
+HashSet<string> uniqueJsonStructures = await dbHelper.GetDistinctJsonStructuresAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv");
+var trulyUniqueJsonStructures = dbHelper.RemoveSubsets(uniqueJsonStructures);
+
+Console.WriteLine("Amount of unique JSON structures: " + uniqueJsonStructures.Count);
+Console.WriteLine("Amount of truly unique JSON structures: " + trulyUniqueJsonStructures.Count);
+
+foreach (var structure in trulyUniqueJsonStructures)
+{
+    Console.WriteLine();
+    Console.WriteLine(structure);
+    Console.WriteLine();
+}
+
+// find unique keys in Json file
+var uniqueKeys = await dbHelper.FindUniqueKeysAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv");
+Console.WriteLine("Amount of unique keys: " + uniqueKeys.Count);
+int tempCount = 0;
+foreach (var key in uniqueKeys)
+{
+    if (key.Contains('.'))
+    {
+        continue;
+    }
+    Console.WriteLine(key);
+    tempCount++;
+    // Console.WriteLine();
+}
+
+Console.WriteLine("Amount of unique keys without subkeys: " + tempCount);
 
 
 // // check postgres connection

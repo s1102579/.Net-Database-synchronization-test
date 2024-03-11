@@ -96,6 +96,77 @@ public class DbHelperPostgresql
         await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"AuditLog_20230101\"");
     }
 
+    public async Task AddRowsToAuditLogTableWithCSVFileAsync(string path)
+    {
+        var auditLogs = new DataTable();
+
+        auditLogs.Columns.Add("AccountId", typeof(int));
+        auditLogs.Columns.Add("PUser_Id", typeof(int));
+        auditLogs.Columns.Add("ImpersonatedUser_Id", typeof(int));
+        auditLogs.Columns.Add("Type", typeof(byte));
+        auditLogs.Columns.Add("Table", typeof(string));
+        auditLogs.Columns.Add("Log", typeof(string));
+        auditLogs.Columns.Add("Created", typeof(DateTime));
+
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = false, // Set to true if your CSV file has a header
+            Delimiter = ",",
+            BadDataFound = null
+        };
+
+        using (var reader = new StreamReader(path))
+        using (var csv = new CsvReader(reader, config))
+        {
+            while (await csv.ReadAsync())
+            {
+                var accountId = csv.GetField(0);
+                var pUserId = csv.GetField(1);
+                var impersonatedUserId = csv.GetField(2);
+                var type = csv.GetField(3);
+                var table = csv.GetField(4);
+                var log = csv.GetField(5);
+                var created = csv.GetField(6);
+
+                Console.WriteLine(accountId + " " + pUserId + " " + impersonatedUserId + " " + type + " " + table + " " + log + " " + created);
+
+
+                var row = auditLogs.NewRow();
+                row["AccountId"] = accountId == "NULL" ? DBNull.Value : int.Parse(accountId);
+                row["PUser_Id"] = pUserId == "NULL" ? DBNull.Value : int.Parse(pUserId);
+                row["ImpersonatedUser_Id"] = impersonatedUserId == "NULL" ? DBNull.Value : int.Parse(impersonatedUserId);
+                row["Type"] = byte.Parse(type);
+                row["Table"] = table;
+                row["Log"] = log;
+                row["Created"] = DateTime.Parse(created);
+
+                auditLogs.Rows.Add(row);
+            }
+        }
+
+        using (var conn = new NpgsqlConnection("Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;TrustServerCertificate=True;")) // hardcoded connection string for testing purposes
+        {
+            await conn.OpenAsync();
+
+            using (var writer = conn.BeginBinaryImport("COPY \"AuditLog_20230101\" (\"AccountId\", \"PUser_Id\", \"ImpersonatedUser_Id\", \"Type\", \"Table\", \"Log\", \"Created\") FROM STDIN (FORMAT BINARY)"))
+            {
+                foreach (DataRow row in auditLogs.Rows)
+                {
+                    writer.StartRow();
+                    writer.Write(row["AccountId"], NpgsqlTypes.NpgsqlDbType.Integer);
+                    writer.Write(row["PUser_Id"], NpgsqlTypes.NpgsqlDbType.Integer);
+                    writer.Write(row["ImpersonatedUser_Id"], NpgsqlTypes.NpgsqlDbType.Integer);
+                    writer.Write(row["Type"], NpgsqlTypes.NpgsqlDbType.Smallint);
+                    writer.Write(row["Table"], NpgsqlTypes.NpgsqlDbType.Text);
+                    writer.Write(row["Log"], NpgsqlTypes.NpgsqlDbType.Text);
+                    writer.Write(row["Created"], NpgsqlTypes.NpgsqlDbType.Timestamp);
+                }
+
+                await writer.CompleteAsync();
+            }
+        }
+    }
+
     public async Task AddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync(string path)
     {
         var auditLogs = new DataTable();

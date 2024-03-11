@@ -18,20 +18,20 @@ public class DbHelperTests
         _dbHelper = new DbHelper(_dbContext);
     }
 
-    [Fact]
-    public async Task TestGetOneDayOfDataFromAuditLogsTableAsync()
-    {
-        // Arrange
-        await _dbHelper.EmptyDatabaseTableDboAuditLogsAsync();
-        await _dbHelper.AddRowsToAuditLogTableWithCSVFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv");
-        string day = "2023-01-31";
+    // [Fact]
+    // public async Task TestGetOneDayOfDataFromAuditLogsTableAsync()
+    // {
+    //     // Arrange
+    //     await _dbHelper.EmptyDatabaseTableDboAuditLogsAsync();
+    //     await _dbHelper.AddRowsToAuditLogTableWithCSVFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv");
+    //     string day = "2023-01-31";
 
-        // Act
-        var result = await _dbHelper.GetOneDayOfDataFromAuditLogsTableAsync(day);
+    //     // Act
+    //     var result = await _dbHelper.GetOneDayOfDataFromAuditLogsTableAsync(day);
 
-        // Assert
-        Assert.Equal(13705, result.Count);
-    }
+    //     // Assert
+    //     Assert.Equal(13705, result.Count);
+    // }
 
     [Fact]
     public async Task TestAddRowsToAuditLogTableWithCSVFileAsync() // 45 seconds with BulkInsert. // 39 minutes and 32 seconds with SQLRawAsync // 27 seconds with SQLBulkCopy

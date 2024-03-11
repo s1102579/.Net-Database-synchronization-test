@@ -17,6 +17,30 @@ public class DbHelperPostgresqlTests
         _dbHelperPostgresql = new DbHelperPostgresql(_testConnectionString, _dbContext);
     }
 
+        [Fact]
+    public async Task TestAddRowsToAuditLogTableWithCSVFileAsync()
+    {
+        // Arrange
+        await _dbHelperPostgresql.EmptyDatabaseTableAuditLogsAsync();
+        // Get csv file from the assets folder in the project directory path
+        string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv"; // TODO Change to Relative path eventually
+
+        // Act
+        await _dbHelperPostgresql.AddRowsToAuditLogTableWithCSVFileAsync(csvFilePath);
+
+        // Assert
+        using (var connection = new NpgsqlConnection(_testConnectionString))
+        {
+            await connection.OpenAsync();
+            using (var command = new NpgsqlCommand("SELECT COUNT(*) FROM \"AuditLog_20230101\"", connection))
+            {
+                long rowCount = (long)(await command.ExecuteScalarAsync() ?? 0);
+                Assert.Equal(1237548, rowCount);
+            }
+            connection.Close();
+        }
+    }
+
     [Fact]
     public async Task TestAddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync() // bulkinsert runtime: 1m 2s  // runtime is: 20s with NPgsql binary import
     {

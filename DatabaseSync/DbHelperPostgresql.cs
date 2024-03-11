@@ -101,6 +101,57 @@ public class DbHelperPostgresql
         return await _context.AuditLogs.ToListAsync();
     }
 
+    // public async Task SplitDataUpInMultipleOwnDatabasesAsync(List<AuditLog> auditLogs)
+    // {
+    //     string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
+    //     HashSet<int> processedAccountIds = new HashSet<int>();
+    //     foreach (var auditLog in auditLogs)
+    //     {
+    //         if (auditLog.AccountId.HasValue && !processedAccountIds.Contains(auditLog.AccountId.Value))
+    //         {
+    //             processedAccountIds.Add(auditLog.AccountId.Value);
+    //             string dbName = $"\"AuditLog_{auditLog.AccountId.Value}\"";
+    //             using (var connection = new NpgsqlConnection(connectionString))
+    //             {
+    //                 await connection.OpenAsync();
+
+    //                 // Check if database exists
+    //                 var command = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName.Replace("\"", "")}'", connection);
+    //                 var dbExists = await command.ExecuteScalarAsync() != null;
+
+    //                 if (!dbExists)
+    //                 {
+    //                     // Create database
+    //                     command = new NpgsqlCommand($"CREATE DATABASE {dbName}", connection);
+    //                     await command.ExecuteNonQueryAsync();
+
+    //                     // Connect to the new database
+    //                     var dbConnection = new NpgsqlConnection(connectionString + $"Database={dbName};");
+    //                     await dbConnection.OpenAsync();
+
+    //                     // Create table
+    //                     string createTableQuery = @"
+    //                 CREATE TABLE ""AuditLog"" (
+    //                     ""PUser_Id"" integer,
+    //                     ""ImpersonatedUser_Id"" integer,
+    //                     ""Type"" bytea,
+    //                     ""Table"" varchar(128),
+    //                     ""Log"" text,
+    //                     ""Created"" timestamp
+    //                 );";
+
+    //                     command = new NpgsqlCommand(createTableQuery, dbConnection);
+    //                     await command.ExecuteNonQueryAsync();
+
+    //                     await dbConnection.CloseAsync();
+    //                 }
+
+    //                 await connection.CloseAsync();
+    //             }
+    //         }
+    //     }
+    // }
+
     public async Task SplitDataUpInMultipleOwnDatabasesAsync(List<AuditLog> auditLogs)
     {
         string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
@@ -129,16 +180,45 @@ public class DbHelperPostgresql
                         var dbConnection = new NpgsqlConnection(connectionString + $"Database={dbName};");
                         await dbConnection.OpenAsync();
 
-                        // Create table
+                        // Create tables
                         string createTableQuery = @"
-                    CREATE TABLE ""AuditLog"" (
-                        ""PUser_Id"" integer,
-                        ""ImpersonatedUser_Id"" integer,
-                        ""Type"" bytea,
-                        ""Table"" varchar(128),
-                        ""Log"" text,
-                        ""Created"" timestamp
-                    );";
+                        CREATE TABLE ""PUser"" (
+                            ""PUser_Id"" integer PRIMARY KEY,
+                            ""Firstname"" varchar(128),
+                            ""LastName"" varchar(128),
+                            ""Email"" varchar(128),
+                            ""Guid"" uuid
+                        );
+
+                        CREATE TABLE ""Operation"" (
+                            ""Operation_Id"" integer PRIMARY KEY,
+                            ""Type_Id"" integer,
+                            ""Data_Id"" integer,
+                            ""Created"" timestamp
+                        );
+
+                        CREATE TABLE ""OperationPUser"" (
+                            ""PUser_id"" integer,
+                            ""Operation_Id"" integer,
+                            PRIMARY KEY (""PUser_id"", ""Operation_Id"")
+                        );
+
+                        CREATE TABLE ""Data"" (
+                            ""Data_Id"" integer PRIMARY KEY,
+                            ""Table"" varchar(128),
+                            ""Data"" text
+                        );
+
+                        CREATE TABLE ""Type"" (
+                            ""Type_Id"" integer PRIMARY KEY,
+                            ""Name"" varchar(128)
+                        );
+
+                        CREATE TABLE ""TaskGroup"" (
+                            ""Taskgroup_Id"" integer PRIMARY KEY,
+                            ""Guid"" uuid,
+                            ""Name"" varchar(128)
+                        );";
 
                         command = new NpgsqlCommand(createTableQuery, dbConnection);
                         await command.ExecuteNonQueryAsync();

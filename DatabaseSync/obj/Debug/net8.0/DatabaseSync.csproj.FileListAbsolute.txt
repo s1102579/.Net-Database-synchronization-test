@@ -231,3 +231,5 @@
 /Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.resources.dll
 /Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/CsvHelper.dll
 /Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/System.Linq.Async.dll
+/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/MySqlConnector.dll
+/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/bin/Debug/net8.0/Pomelo.EntityFrameworkCore.MySql.dll

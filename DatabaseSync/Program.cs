@@ -78,6 +78,7 @@ string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Pa
 DbHelperPostgresql dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres, PostgreSqlDbContext.Instance);
 List<AuditLog> logs = await dbHelperPostgres.GetAllDataFromAuditLogsTableAsync();
 await dbHelperPostgres.SplitDataUpInMultipleOwnDatabasesAsync(logs);
+await dbHelperPostgres.InsertTaskGroupDataIntoDatabasesfromCsvFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/All_TaskGroups.csv");
 // await dbHelperPostgres.InsertDataIntoDatabasesAsync(logs);
 
 // // count the amount of unique JSON structures in the Log column

@@ -217,7 +217,8 @@ public class DbHelperPostgresql
                         CREATE TABLE ""TaskGroup"" (
                             ""Taskgroup_Id"" integer PRIMARY KEY,
                             ""Guid"" uuid,
-                            ""Name"" varchar(128)
+                            ""Name"" varchar(255),
+                            ""GlobalID"" text
                         );";
 
                         command = new NpgsqlCommand(createTableQuery, dbConnection);
@@ -232,10 +233,93 @@ public class DbHelperPostgresql
         }
     }
 
+    public async Task InsertTaskGroupDataIntoDatabasesfromCsvFileAsync(string csvFilePath)
+    {
+        string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
+
+        DataTable taskGroups = await ReadTaskgroupCsvIntoDataTable(csvFilePath);
+
+        // Sort and group the data based on Account_Id
+        var groupedData = taskGroups.AsEnumerable().GroupBy(row => row["Account_Id"]);
+
+        foreach (var group in groupedData)
+        {
+            await InsertTaskgroupsIntoDatabase(group, connectionString);
+        }
+    }
+
+    private async Task<DataTable> ReadTaskgroupCsvIntoDataTable(string csvFilePath)
+    {
+        var taskGroups = new DataTable();
+
+        // Add columns to DataTable
+        taskGroups.Columns.AddRange(new DataColumn[]
+        {
+        new DataColumn("Account_Id", typeof(int)),
+        new DataColumn("Taskgroup_Id", typeof(int)),
+        new DataColumn("Guid", typeof(Guid)),
+        new DataColumn("Name", typeof(string)),
+        new DataColumn("GlobalID", typeof(string))
+        });
+
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = false,
+            Delimiter = ",",
+            BadDataFound = null
+        };
+
+        using (var reader = new StreamReader(csvFilePath))
+        using (var csv = new CsvReader(reader, config))
+        {
+            while (await csv.ReadAsync())
+            {
+                taskGroups.Rows.Add(CreateTaskgroupRowFromCsvRecord(csv, taskGroups));
+            }
+        }
+
+        // Sort the data based on Account_Id
+        DataView dv = taskGroups.DefaultView;
+        dv.Sort = "Account_Id asc";
+        return dv.ToTable();
+    }
+
+    private DataRow CreateTaskgroupRowFromCsvRecord(CsvReader csv, DataTable table)
+    {
+        var accountId = csv.GetField(0);
+        var taskgroupId = csv.GetField(1);
+        var guidString = csv.GetField(3);
+        var name = csv.GetField(2);
+        var globalId = csv.GetField(4);
+
+        if (!Guid.TryParse(guidString, out Guid guid))
+        {
+            Console.WriteLine($"Unable to parse '{guidString}' to a Guid.");
+            return null;
+        }
+
+        var row = table.NewRow();
+        row["Account_Id"] = int.Parse(accountId);
+        row["Taskgroup_Id"] = int.Parse(taskgroupId);
+        row["Guid"] = guid;
+        row["Name"] = name;
+        row["GlobalID"] = globalId;
+
+        return row;
+    }
+
+
     public async Task InsertDataIntoDatabasesAsync(List<AuditLog> auditLogs)
     {
         string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
         var groupedAuditLogs = auditLogs.GroupBy(a => a.AccountId);
+
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = false, // Set to true if your CSV file has a header
+            Delimiter = ",",
+            BadDataFound = null
+        };
 
         foreach (var group in groupedAuditLogs)
         {
@@ -265,6 +349,46 @@ public class DbHelperPostgresql
 
                     await connection.CloseAsync();
                 }
+            }
+        }
+    }
+
+    private async Task InsertTaskgroupsIntoDatabase(IGrouping<object, DataRow> group, string connectionString)
+    {
+        string dbName = $"\"AuditLog_{group.Key}\"";
+        using (var connection = new NpgsqlConnection(connectionString + $"Database={dbName};"))
+        {
+            try
+            {
+                await connection.OpenAsync();
+
+                using (var writer = connection.BeginBinaryImport("COPY \"TaskGroup\" (\"Taskgroup_Id\", \"Guid\", \"Name\", \"GlobalID\") FROM STDIN (FORMAT BINARY)"))
+                {
+                    foreach (var row in group)
+                    {
+                        writer.StartRow();
+                        writer.Write(row["Taskgroup_Id"], NpgsqlTypes.NpgsqlDbType.Integer);
+                        writer.Write(row["Guid"], NpgsqlTypes.NpgsqlDbType.Uuid);
+                        writer.Write(row["Name"], NpgsqlTypes.NpgsqlDbType.Text);
+                        writer.Write(row["GlobalID"], NpgsqlTypes.NpgsqlDbType.Text);
+                    }
+
+                    await writer.CompleteAsync();
+                }
+            }
+            catch (Npgsql.PostgresException ex)
+            {
+                if (ex.SqlState == "3D000")
+                {
+                    Console.WriteLine($"Database {dbName} does not exist. Skipping...");
+                    return;
+                }
+
+                throw;
+            }
+            finally
+            {
+                await connection.CloseAsync();
             }
         }
     }
@@ -341,49 +465,4 @@ public class DbHelperPostgresql
             }
         }
     }
-
-    // public async Task AddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync(string path) // for testing purposes only. Theoretical starting point for postgresql database where it runs one day behine de source database
-    // {
-    //     var auditLogs = new List<AuditLog>();
-
-    //     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-    //     {
-    //         HasHeaderRecord = false, // Set to true if your CSV file has a header
-    //         Delimiter = ",",
-    //         BadDataFound = null
-    //     };
-
-    //     using (var reader = new StreamReader(path))
-    //     using (var csv = new CsvReader(reader, config))
-    //     {
-    //         while (await csv.ReadAsync())
-    //         {
-    //             var accountId = csv.GetField(0);
-    //             var pUserId = csv.GetField(1);
-    //             var impersonatedUserId = csv.GetField(2);
-    //             var type = csv.GetField(3);
-    //             var table = csv.GetField(4);
-    //             var log = csv.GetField(5);
-    //             var created = csv.GetField(6);
-
-    //             Console.WriteLine(accountId + " " + pUserId + " " + impersonatedUserId + " " + type + " " + table + " " + log + " " + created);
-    //             if (!created.Contains("2023-01-31"))
-    //             {
-    //                 var auditLog = new AuditLog
-    //                 {
-    //                     AccountId = accountId == "NULL" ? (int?)null : int.Parse(accountId),
-    //                     PUser_Id = pUserId == "NULL" ? (int?)null : int.Parse(pUserId),
-    //                     ImpersonatedUser_Id = impersonatedUserId == "NULL" ? (int?)null : int.Parse(impersonatedUserId),
-    //                     Type = byte.Parse(type),
-    //                     Table = table,
-    //                     Log = log,
-    //                     Created = DateTime.Parse(created)
-    //                 };
-
-    //                 auditLogs.Add(auditLog);
-    //             }
-    //         }
-    //     }
-    //     await _context.BulkInsertAsync(auditLogs); // zou veel tijd moeten schelen met normale insert zoals de _context.SaveChangesAsync()
-    // }
 }

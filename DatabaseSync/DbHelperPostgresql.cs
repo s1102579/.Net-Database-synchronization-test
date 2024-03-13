@@ -26,11 +26,6 @@ public class DbHelperPostgresql
         await _context.SaveChangesAsync();
     }
 
-    // public async Task InsertListOfAuditLogDataAsync(List<AuditLog> auditLogs) // uses bulkinsert
-    // {
-    //     await _context.BulkInsertAsync(auditLogs);
-    // }
-
     public async Task InsertListOfAuditLogDataAsync(List<AuditLog> auditLogs) // uses binary import
     {
         using (var conn = new NpgsqlConnection("Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;TrustServerCertificate=True;"))
@@ -56,32 +51,18 @@ public class DbHelperPostgresql
         }
     }
 
-    public async void CheckIfDatabaseExists()
+    public async Task InsertTaskGroupDataIntoDatabasesfromCsvFileAsync(string csvFilePath)
     {
-        using (var connection = new NpgsqlConnection(_connectionString))
+        string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
+
+        DataTable taskGroups = await ReadTaskgroupCsvIntoDataTable(csvFilePath);
+
+        // Sort and group the data based on Account_Id
+        var groupedData = taskGroups.AsEnumerable().GroupBy(row => row["Account_Id"]);
+
+        foreach (var group in groupedData)
         {
-            await connection.OpenAsync();
-
-            Console.WriteLine("Checking if the database exists...");
-
-            // Check if the database exists
-            using (var checkDatabaseCommand = new NpgsqlCommand(
-                "SELECT 1 FROM pg_database WHERE datname = 'postgres_sync_database'",
-                connection))
-            {
-                var databaseExists = await checkDatabaseCommand.ExecuteScalarAsync();
-                if (databaseExists == null)
-                {
-                    Console.WriteLine("Database does not exist. Creating...");
-                    using (var createDatabaseCommand = new NpgsqlCommand(
-                        "CREATE DATABASE postgres_sync_database",
-                        connection))
-                    {
-                        await createDatabaseCommand.ExecuteNonQueryAsync();
-                    }
-                }
-            }
-            connection.Close();
+            await InsertTaskgroupsIntoDatabase(group, connectionString);
         }
     }
 
@@ -101,134 +82,17 @@ public class DbHelperPostgresql
         return await _context.AuditLogs.ToListAsync();
     }
 
-    // public async Task SplitDataUpInMultipleOwnDatabasesAsync(List<AuditLog> auditLogs)
-    // {
-    //     string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
-    //     HashSet<int> processedAccountIds = new HashSet<int>();
-    //     foreach (var auditLog in auditLogs)
-    //     {
-    //         if (auditLog.AccountId.HasValue && !processedAccountIds.Contains(auditLog.AccountId.Value))
-    //         {
-    //             processedAccountIds.Add(auditLog.AccountId.Value);
-    //             string dbName = $"\"AuditLog_{auditLog.AccountId.Value}\"";
-    //             using (var connection = new NpgsqlConnection(connectionString))
-    //             {
-    //                 await connection.OpenAsync();
-
-    //                 // Check if database exists
-    //                 var command = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName.Replace("\"", "")}'", connection);
-    //                 var dbExists = await command.ExecuteScalarAsync() != null;
-
-    //                 if (!dbExists)
-    //                 {
-    //                     // Create database
-    //                     command = new NpgsqlCommand($"CREATE DATABASE {dbName}", connection);
-    //                     await command.ExecuteNonQueryAsync();
-
-    //                     // Connect to the new database
-    //                     var dbConnection = new NpgsqlConnection(connectionString + $"Database={dbName};");
-    //                     await dbConnection.OpenAsync();
-
-    //                     // Create table
-    //                     string createTableQuery = @"
-    //                 CREATE TABLE ""AuditLog"" (
-    //                     ""PUser_Id"" integer,
-    //                     ""ImpersonatedUser_Id"" integer,
-    //                     ""Type"" bytea,
-    //                     ""Table"" varchar(128),
-    //                     ""Log"" text,
-    //                     ""Created"" timestamp
-    //                 );";
-
-    //                     command = new NpgsqlCommand(createTableQuery, dbConnection);
-    //                     await command.ExecuteNonQueryAsync();
-
-    //                     await dbConnection.CloseAsync();
-    //                 }
-
-    //                 await connection.CloseAsync();
-    //             }
-    //         }
-    //     }
-    // }
-
     public async Task SplitDataUpInMultipleOwnDatabasesAsync(List<AuditLog> auditLogs)
     {
         string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
         HashSet<int> processedAccountIds = new HashSet<int>();
+
         foreach (var auditLog in auditLogs)
         {
             if (auditLog.AccountId.HasValue && !processedAccountIds.Contains(auditLog.AccountId.Value))
             {
                 processedAccountIds.Add(auditLog.AccountId.Value);
-                string dbName = $"\"AuditLog_{auditLog.AccountId.Value}\"";
-                using (var connection = new NpgsqlConnection(connectionString))
-                {
-                    await connection.OpenAsync();
-
-                    // Check if database exists
-                    var command = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName.Replace("\"", "")}'", connection);
-                    var dbExists = await command.ExecuteScalarAsync() != null;
-
-                    if (!dbExists)
-                    {
-                        // Create database
-                        command = new NpgsqlCommand($"CREATE DATABASE {dbName}", connection);
-                        await command.ExecuteNonQueryAsync();
-
-                        // Connect to the new database
-                        var dbConnection = new NpgsqlConnection(connectionString + $"Database={dbName};");
-                        await dbConnection.OpenAsync();
-
-                        // Create tables
-                        string createTableQuery = @"
-                        CREATE TABLE ""PUser"" (
-                            ""PUser_Id"" integer PRIMARY KEY,
-                            ""Firstname"" varchar(128),
-                            ""LastName"" varchar(128),
-                            ""Email"" varchar(128),
-                            ""Guid"" uuid
-                        );
-
-                        CREATE TABLE ""Operation"" (
-                            ""Operation_Id"" integer PRIMARY KEY,
-                            ""Type_Id"" integer,
-                            ""Data_Id"" integer,
-                            ""Created"" timestamp
-                        );
-
-                        CREATE TABLE ""OperationPUser"" (
-                            ""PUser_id"" integer,
-                            ""Operation_Id"" integer,
-                            PRIMARY KEY (""PUser_id"", ""Operation_Id"")
-                        );
-
-                        CREATE TABLE ""Data"" (
-                            ""Data_Id"" integer PRIMARY KEY,
-                            ""Table"" varchar(128),
-                            ""Data"" text
-                        );
-
-                        CREATE TABLE ""Type"" (
-                            ""Type_Id"" integer PRIMARY KEY,
-                            ""Name"" varchar(128)
-                        );
-
-                        CREATE TABLE ""TaskGroup"" (
-                            ""Taskgroup_Id"" integer PRIMARY KEY,
-                            ""Guid"" uuid,
-                            ""Name"" varchar(255),
-                            ""GlobalID"" text
-                        );";
-
-                        command = new NpgsqlCommand(createTableQuery, dbConnection);
-                        await command.ExecuteNonQueryAsync();
-
-                        await dbConnection.CloseAsync();
-                    }
-
-                    await connection.CloseAsync();
-                }
+                await CreateDatabaseAndTablesIfNotExists(auditLog.AccountId.Value, connectionString);
             }
         }
     }
@@ -242,45 +106,203 @@ public class DbHelperPostgresql
 
         foreach (var accountId in processedAccountIds)
         {
-            string dbName = $"\"AuditLog_{accountId}\"";
-            using (var connection = new NpgsqlConnection(connectionString))
+            await DeleteDatabaseIfItExists(accountId, connectionString);
+        }
+    }
+
+    public async Task AddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync(string path)
+    {
+        var auditLogs = await ReadAuditLogsFromCSV(path);
+        await WriteAuditLogsToDatabase(auditLogs);
+    }
+
+    private async Task<DataTable> ReadAuditLogsFromCSV(string path)
+    {
+        var auditLogs = new DataTable();
+
+        auditLogs.Columns.Add("AccountId", typeof(int));
+        auditLogs.Columns.Add("PUser_Id", typeof(int));
+        auditLogs.Columns.Add("ImpersonatedUser_Id", typeof(int));
+        auditLogs.Columns.Add("Type", typeof(byte));
+        auditLogs.Columns.Add("Table", typeof(string));
+        auditLogs.Columns.Add("Log", typeof(string));
+        auditLogs.Columns.Add("Created", typeof(DateTime));
+
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = false, // Set to true if your CSV file has a header
+            Delimiter = ",",
+            BadDataFound = null
+        };
+
+        using (var reader = new StreamReader(path))
+        using (var csv = new CsvReader(reader, config))
+        {
+            while (await csv.ReadAsync())
             {
-                await connection.OpenAsync();
+                var created = csv.GetField(6);
 
-                // Check if database exists
-                var command = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName.Replace("\"", "")}'", connection);
-                var dbExists = await command.ExecuteScalarAsync() != null;
-
-                if (dbExists)
+                if (!created.Contains("2023-01-31"))
                 {
-                    // Terminate all connections to the database
-                    command = new NpgsqlCommand($"SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '{dbName.Replace("\"", "")}' AND pid <> pg_backend_pid();", connection);
-                    await command.ExecuteNonQueryAsync();
+                    var row = auditLogs.NewRow();
+                    row["AccountId"] = ParseNullableInt(csv.GetField(0));
+                    row["PUser_Id"] = ParseNullableInt(csv.GetField(1));
+                    row["ImpersonatedUser_Id"] = ParseNullableInt(csv.GetField(2));
+                    row["Type"] = byte.Parse(csv.GetField(3));
+                    row["Table"] = csv.GetField(4);
+                    row["Log"] = csv.GetField(5);
+                    row["Created"] = DateTime.Parse(created);
 
-                    // Drop database
-                    command = new NpgsqlCommand($"DROP DATABASE {dbName}", connection);
-                    await command.ExecuteNonQueryAsync();
+                    auditLogs.Rows.Add(row);
+                }
+            }
+        }
+
+        return auditLogs;
+    }
+
+    private object ParseNullableInt(string value)
+    {
+        return value == "NULL" ? DBNull.Value : (object)int.Parse(value);
+    }
+
+    private async Task WriteAuditLogsToDatabase(DataTable auditLogs)
+    {
+        using (var conn = new NpgsqlConnection("Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;TrustServerCertificate=True;")) // hardcoded connection string for testing purposes
+        {
+            await conn.OpenAsync();
+
+            using (var writer = conn.BeginBinaryImport("COPY \"AuditLog_20230101\" (\"AccountId\", \"PUser_Id\", \"ImpersonatedUser_Id\", \"Type\", \"Table\", \"Log\", \"Created\") FROM STDIN (FORMAT BINARY)"))
+            {
+                foreach (DataRow row in auditLogs.Rows)
+                {
+                    writer.StartRow();
+                    writer.Write(row["AccountId"], NpgsqlTypes.NpgsqlDbType.Integer);
+                    writer.Write(row["PUser_Id"], NpgsqlTypes.NpgsqlDbType.Integer);
+                    writer.Write(row["ImpersonatedUser_Id"], NpgsqlTypes.NpgsqlDbType.Integer);
+                    writer.Write(row["Type"], NpgsqlTypes.NpgsqlDbType.Smallint);
+                    writer.Write(row["Table"], NpgsqlTypes.NpgsqlDbType.Text);
+                    writer.Write(row["Log"], NpgsqlTypes.NpgsqlDbType.Text);
+                    writer.Write(row["Created"], NpgsqlTypes.NpgsqlDbType.Timestamp);
                 }
 
-                await connection.CloseAsync();
+                await writer.CompleteAsync();
             }
         }
     }
 
-    public async Task InsertTaskGroupDataIntoDatabasesfromCsvFileAsync(string csvFilePath)
+    private async Task CreateDatabaseAndTablesIfNotExists(int accountId, string connectionString)
     {
-        string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
-
-        DataTable taskGroups = await ReadTaskgroupCsvIntoDataTable(csvFilePath);
-
-        // Sort and group the data based on Account_Id
-        var groupedData = taskGroups.AsEnumerable().GroupBy(row => row["Account_Id"]);
-
-        foreach (var group in groupedData)
+        string dbName = $"\"AuditLog_{accountId}\"";
+        using (var connection = new NpgsqlConnection(connectionString))
         {
-            await InsertTaskgroupsIntoDatabase(group, connectionString);
+            await connection.OpenAsync();
+
+            if (!await DatabaseExists(dbName, connection))
+            {
+                await CreateDatabase(dbName, connection);
+                await CreateTablesInDatabase(dbName, connectionString);
+            }
+
+            await connection.CloseAsync();
         }
     }
+
+    private async Task<bool> DatabaseExists(string dbName, NpgsqlConnection connection)
+    {
+        var command = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName.Replace("\"", "")}'", connection);
+        return await command.ExecuteScalarAsync() != null;
+    }
+
+    private async Task CreateDatabase(string dbName, NpgsqlConnection connection)
+    {
+        var command = new NpgsqlCommand($"CREATE DATABASE {dbName}", connection);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private async Task CreateTablesInDatabase(string dbName, string connectionString)
+    {
+        var dbConnection = new NpgsqlConnection(connectionString + $"Database={dbName};");
+        await dbConnection.OpenAsync();
+
+        string createTableQuery = @"
+            CREATE TABLE ""PUser"" (
+                ""PUser_Id"" integer PRIMARY KEY,
+                ""Firstname"" varchar(128),
+                ""LastName"" varchar(128),
+                ""Email"" varchar(128),
+                ""Guid"" uuid
+            );
+
+            CREATE TABLE ""Operation"" (
+                ""Operation_Id"" integer PRIMARY KEY,
+                ""Type_Id"" integer,
+                ""Data_Id"" integer,
+                ""Created"" timestamp
+            );
+
+            CREATE TABLE ""OperationPUser"" (
+                ""PUser_id"" integer,
+                ""Operation_Id"" integer,
+                PRIMARY KEY (""PUser_id"", ""Operation_Id"")
+            );
+
+            CREATE TABLE ""Data"" (
+                ""Data_Id"" integer PRIMARY KEY,
+                ""Table"" varchar(128),
+                ""Data"" text
+            );
+
+            CREATE TABLE ""Type"" (
+                ""Type_Id"" integer PRIMARY KEY,
+                ""Name"" varchar(128)
+            );
+
+            CREATE TABLE ""TaskGroup"" (
+                ""Taskgroup_Id"" integer PRIMARY KEY,
+                ""Guid"" uuid,
+                ""Name"" varchar(255),
+                ""GlobalID"" text
+            );";
+
+        var command = new NpgsqlCommand(createTableQuery, dbConnection);
+        await command.ExecuteNonQueryAsync();
+
+        await dbConnection.CloseAsync();
+    }
+
+
+
+    private async Task DeleteDatabaseIfItExists(int accountId, string connectionString)
+    {
+        string dbName = $"\"AuditLog_{accountId}\"";
+        using (var connection = new NpgsqlConnection(connectionString))
+        {
+            await connection.OpenAsync();
+
+            if (await DatabaseExists(dbName, connection))
+            {
+                await TerminateAllConnectionsToDatabase(dbName, connection);
+                await DropDatabase(dbName, connection);
+            }
+
+            await connection.CloseAsync();
+        }
+    }
+
+    private async Task TerminateAllConnectionsToDatabase(string dbName, NpgsqlConnection connection)
+    {
+        var command = new NpgsqlCommand($"SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '{dbName.Replace("\"", "")}' AND pid <> pg_backend_pid();", connection);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private async Task DropDatabase(string dbName, NpgsqlConnection connection)
+    {
+        var command = new NpgsqlCommand($"DROP DATABASE {dbName}", connection);
+        await command.ExecuteNonQueryAsync();
+    }
+
+
 
     private async Task<DataTable> ReadTaskgroupCsvIntoDataTable(string csvFilePath)
     {
@@ -341,52 +363,6 @@ public class DbHelperPostgresql
 
         return row;
     }
-
-
-    public async Task InsertDataIntoDatabasesAsync(List<AuditLog> auditLogs)
-    {
-        string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
-        var groupedAuditLogs = auditLogs.GroupBy(a => a.AccountId);
-
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            HasHeaderRecord = false, // Set to true if your CSV file has a header
-            Delimiter = ",",
-            BadDataFound = null
-        };
-
-        foreach (var group in groupedAuditLogs)
-        {
-            Console.WriteLine($"Processing account {group.Key}");
-            if (group.Key.HasValue)
-            {
-                string dbName = $"\"AuditLog_{group.Key.Value}\"";
-                using (var connection = new NpgsqlConnection(connectionString + $"Database={dbName};"))
-                {
-                    await connection.OpenAsync();
-
-                    using (var writer = connection.BeginBinaryImport("COPY \"AuditLog\" (\"PUser_Id\", \"ImpersonatedUser_Id\", \"Type\", \"Table\", \"Log\", \"Created\") FROM STDIN (FORMAT BINARY)"))
-                    {
-                        foreach (var auditLog in group)
-                        {
-                            writer.StartRow();
-                            writer.Write(auditLog.PUser_Id, NpgsqlTypes.NpgsqlDbType.Integer);
-                            writer.Write(auditLog.ImpersonatedUser_Id, NpgsqlTypes.NpgsqlDbType.Integer);
-                            writer.Write(auditLog.Type, NpgsqlTypes.NpgsqlDbType.Smallint);
-                            writer.Write(auditLog.Table, NpgsqlTypes.NpgsqlDbType.Text);
-                            writer.Write(auditLog.Log, NpgsqlTypes.NpgsqlDbType.Text);
-                            writer.Write(auditLog.Created, NpgsqlTypes.NpgsqlDbType.Timestamp);
-                        }
-
-                        await writer.CompleteAsync();
-                    }
-
-                    await connection.CloseAsync();
-                }
-            }
-        }
-    }
-
     private async Task InsertTaskgroupsIntoDatabase(IGrouping<object, DataRow> group, string connectionString)
     {
         string dbName = $"\"AuditLog_{group.Key}\"";
@@ -427,76 +403,48 @@ public class DbHelperPostgresql
         }
     }
 
-    public async Task AddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync(string path)
-    {
-        var auditLogs = new DataTable();
+    // public async Task InsertDataIntoDatabasesAsync(List<AuditLog> auditLogs)
+    // {
+    //     string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
+    //     var groupedAuditLogs = auditLogs.GroupBy(a => a.AccountId);
 
-        auditLogs.Columns.Add("AccountId", typeof(int));
-        auditLogs.Columns.Add("PUser_Id", typeof(int));
-        auditLogs.Columns.Add("ImpersonatedUser_Id", typeof(int));
-        auditLogs.Columns.Add("Type", typeof(byte));
-        auditLogs.Columns.Add("Table", typeof(string));
-        auditLogs.Columns.Add("Log", typeof(string));
-        auditLogs.Columns.Add("Created", typeof(DateTime));
+    //     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+    //     {
+    //         HasHeaderRecord = false, // Set to true if your CSV file has a header
+    //         Delimiter = ",",
+    //         BadDataFound = null
+    //     };
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            HasHeaderRecord = false, // Set to true if your CSV file has a header
-            Delimiter = ",",
-            BadDataFound = null
-        };
+    //     foreach (var group in groupedAuditLogs)
+    //     {
+    //         Console.WriteLine($"Processing account {group.Key}");
+    //         if (group.Key.HasValue)
+    //         {
+    //             string dbName = $"\"AuditLog_{group.Key.Value}\"";
+    //             using (var connection = new NpgsqlConnection(connectionString + $"Database={dbName};"))
+    //             {
+    //                 await connection.OpenAsync();
 
-        using (var reader = new StreamReader(path))
-        using (var csv = new CsvReader(reader, config))
-        {
-            while (await csv.ReadAsync())
-            {
-                var accountId = csv.GetField(0);
-                var pUserId = csv.GetField(1);
-                var impersonatedUserId = csv.GetField(2);
-                var type = csv.GetField(3);
-                var table = csv.GetField(4);
-                var log = csv.GetField(5);
-                var created = csv.GetField(6);
+    //                 using (var writer = connection.BeginBinaryImport("COPY \"AuditLog\" (\"PUser_Id\", \"ImpersonatedUser_Id\", \"Type\", \"Table\", \"Log\", \"Created\") FROM STDIN (FORMAT BINARY)"))
+    //                 {
+    //                     foreach (var auditLog in group)
+    //                     {
+    //                         writer.StartRow();
+    //                         writer.Write(auditLog.PUser_Id, NpgsqlTypes.NpgsqlDbType.Integer);
+    //                         writer.Write(auditLog.ImpersonatedUser_Id, NpgsqlTypes.NpgsqlDbType.Integer);
+    //                         writer.Write(auditLog.Type, NpgsqlTypes.NpgsqlDbType.Smallint);
+    //                         writer.Write(auditLog.Table, NpgsqlTypes.NpgsqlDbType.Text);
+    //                         writer.Write(auditLog.Log, NpgsqlTypes.NpgsqlDbType.Text);
+    //                         writer.Write(auditLog.Created, NpgsqlTypes.NpgsqlDbType.Timestamp);
+    //                     }
 
-                Console.WriteLine(accountId + " " + pUserId + " " + impersonatedUserId + " " + type + " " + table + " " + log + " " + created);
+    //                     await writer.CompleteAsync();
+    //                 }
 
-                if (!created.Contains("2023-01-31"))
-                {
-                    var row = auditLogs.NewRow();
-                    row["AccountId"] = accountId == "NULL" ? DBNull.Value : int.Parse(accountId);
-                    row["PUser_Id"] = pUserId == "NULL" ? DBNull.Value : int.Parse(pUserId);
-                    row["ImpersonatedUser_Id"] = impersonatedUserId == "NULL" ? DBNull.Value : int.Parse(impersonatedUserId);
-                    row["Type"] = byte.Parse(type);
-                    row["Table"] = table;
-                    row["Log"] = log;
-                    row["Created"] = DateTime.Parse(created);
+    //                 await connection.CloseAsync();
+    //             }
+    //         }
+    //     }
+    // }
 
-                    auditLogs.Rows.Add(row);
-                }
-            }
-        }
-
-        using (var conn = new NpgsqlConnection("Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;TrustServerCertificate=True;")) // hardcoded connection string for testing purposes
-        {
-            await conn.OpenAsync();
-
-            using (var writer = conn.BeginBinaryImport("COPY \"AuditLog_20230101\" (\"AccountId\", \"PUser_Id\", \"ImpersonatedUser_Id\", \"Type\", \"Table\", \"Log\", \"Created\") FROM STDIN (FORMAT BINARY)"))
-            {
-                foreach (DataRow row in auditLogs.Rows)
-                {
-                    writer.StartRow();
-                    writer.Write(row["AccountId"], NpgsqlTypes.NpgsqlDbType.Integer);
-                    writer.Write(row["PUser_Id"], NpgsqlTypes.NpgsqlDbType.Integer);
-                    writer.Write(row["ImpersonatedUser_Id"], NpgsqlTypes.NpgsqlDbType.Integer);
-                    writer.Write(row["Type"], NpgsqlTypes.NpgsqlDbType.Smallint);
-                    writer.Write(row["Table"], NpgsqlTypes.NpgsqlDbType.Text);
-                    writer.Write(row["Log"], NpgsqlTypes.NpgsqlDbType.Text);
-                    writer.Write(row["Created"], NpgsqlTypes.NpgsqlDbType.Timestamp);
-                }
-
-                await writer.CompleteAsync();
-            }
-        }
-    }
 }

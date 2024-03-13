@@ -55,14 +55,14 @@ public class DbHelperPostgresql
     {
         string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
 
-        DataTable taskGroups = await ReadTaskgroupCsvIntoDataTable(csvFilePath);
+        DataTable taskGroups = await ReadTaskgroupCsvIntoDataTableAsync(csvFilePath);
 
         // Sort and group the data based on Account_Id
         var groupedData = taskGroups.AsEnumerable().GroupBy(row => row["Account_Id"]);
 
         foreach (var group in groupedData)
         {
-            await InsertTaskgroupsIntoDatabase(group, connectionString);
+            await InsertTaskgroupsIntoDatabaseAsync(group, connectionString);
         }
     }
 
@@ -92,7 +92,7 @@ public class DbHelperPostgresql
             if (auditLog.AccountId.HasValue && !processedAccountIds.Contains(auditLog.AccountId.Value))
             {
                 processedAccountIds.Add(auditLog.AccountId.Value);
-                await CreateDatabaseAndTablesIfNotExists(auditLog.AccountId.Value, connectionString);
+                await CreateDatabaseAndTablesIfNotExistsAsync(auditLog.AccountId.Value, connectionString);
             }
         }
     }
@@ -106,17 +106,20 @@ public class DbHelperPostgresql
 
         foreach (var accountId in processedAccountIds)
         {
-            await DeleteDatabaseIfItExists(accountId, connectionString);
+            await DeleteDatabaseIfItExistsAsync(accountId, connectionString);
         }
     }
 
     public async Task AddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync(string path)
     {
-        var auditLogs = await ReadAuditLogsFromCSV(path);
+        var auditLogs = await ReadAuditLogsFromCSVAsync(path);
         await WriteAuditLogsToDatabase(auditLogs);
     }
 
-    private async Task<DataTable> ReadAuditLogsFromCSV(string path)
+    /* ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */
+    /* Private methods */
+
+    private async Task<DataTable> ReadAuditLogsFromCSVAsync(string path)
     {
         var auditLogs = new DataTable();
 
@@ -191,24 +194,24 @@ public class DbHelperPostgresql
         }
     }
 
-    private async Task CreateDatabaseAndTablesIfNotExists(int accountId, string connectionString)
+    private async Task CreateDatabaseAndTablesIfNotExistsAsync(int accountId, string connectionString)
     {
         string dbName = $"\"AuditLog_{accountId}\"";
         using (var connection = new NpgsqlConnection(connectionString))
         {
             await connection.OpenAsync();
 
-            if (!await DatabaseExists(dbName, connection))
+            if (!await DatabaseExistsAsync(dbName, connection))
             {
                 await CreateDatabase(dbName, connection);
-                await CreateTablesInDatabase(dbName, connectionString);
+                await CreateTablesInDatabaseAsync(dbName, connectionString);
             }
 
             await connection.CloseAsync();
         }
     }
 
-    private async Task<bool> DatabaseExists(string dbName, NpgsqlConnection connection)
+    private async Task<bool> DatabaseExistsAsync(string dbName, NpgsqlConnection connection)
     {
         var command = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName.Replace("\"", "")}'", connection);
         return await command.ExecuteScalarAsync() != null;
@@ -220,7 +223,7 @@ public class DbHelperPostgresql
         await command.ExecuteNonQueryAsync();
     }
 
-    private async Task CreateTablesInDatabase(string dbName, string connectionString)
+    private async Task CreateTablesInDatabaseAsync(string dbName, string connectionString)
     {
         var dbConnection = new NpgsqlConnection(connectionString + $"Database={dbName};");
         await dbConnection.OpenAsync();
@@ -271,40 +274,36 @@ public class DbHelperPostgresql
         await dbConnection.CloseAsync();
     }
 
-
-
-    private async Task DeleteDatabaseIfItExists(int accountId, string connectionString)
+    private async Task DeleteDatabaseIfItExistsAsync(int accountId, string connectionString)
     {
         string dbName = $"\"AuditLog_{accountId}\"";
         using (var connection = new NpgsqlConnection(connectionString))
         {
             await connection.OpenAsync();
 
-            if (await DatabaseExists(dbName, connection))
+            if (await DatabaseExistsAsync(dbName, connection))
             {
-                await TerminateAllConnectionsToDatabase(dbName, connection);
-                await DropDatabase(dbName, connection);
+                await TerminateAllConnectionsToDatabaseAsync(dbName, connection);
+                await DropDatabaseAsync(dbName, connection);
             }
 
             await connection.CloseAsync();
         }
     }
 
-    private async Task TerminateAllConnectionsToDatabase(string dbName, NpgsqlConnection connection)
+    private async Task TerminateAllConnectionsToDatabaseAsync(string dbName, NpgsqlConnection connection)
     {
         var command = new NpgsqlCommand($"SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '{dbName.Replace("\"", "")}' AND pid <> pg_backend_pid();", connection);
         await command.ExecuteNonQueryAsync();
     }
 
-    private async Task DropDatabase(string dbName, NpgsqlConnection connection)
+    private async Task DropDatabaseAsync(string dbName, NpgsqlConnection connection)
     {
         var command = new NpgsqlCommand($"DROP DATABASE {dbName}", connection);
         await command.ExecuteNonQueryAsync();
     }
 
-
-
-    private async Task<DataTable> ReadTaskgroupCsvIntoDataTable(string csvFilePath)
+    private async Task<DataTable> ReadTaskgroupCsvIntoDataTableAsync(string csvFilePath)
     {
         var taskGroups = new DataTable();
 
@@ -348,22 +347,16 @@ public class DbHelperPostgresql
         var name = csv.GetField(2);
         var globalId = csv.GetField(4);
 
-        if (!Guid.TryParse(guidString, out Guid guid))
-        {
-            Console.WriteLine($"Unable to parse '{guidString}' to a Guid.");
-            return null;
-        }
-
         var row = table.NewRow();
         row["Account_Id"] = int.Parse(accountId);
         row["Taskgroup_Id"] = int.Parse(taskgroupId);
-        row["Guid"] = guid;
+        row["Guid"] = Guid.Parse(guidString);
         row["Name"] = name;
         row["GlobalID"] = globalId;
 
         return row;
     }
-    private async Task InsertTaskgroupsIntoDatabase(IGrouping<object, DataRow> group, string connectionString)
+    private async Task InsertTaskgroupsIntoDatabaseAsync(IGrouping<object, DataRow> group, string connectionString)
     {
         string dbName = $"\"AuditLog_{group.Key}\"";
         using (var connection = new NpgsqlConnection(connectionString + $"Database={dbName};"))

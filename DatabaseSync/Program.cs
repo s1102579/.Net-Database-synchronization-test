@@ -79,7 +79,8 @@ DbHelperPostgresql dbHelperPostgres = new DbHelperPostgresql(connectionStringPos
 List<AuditLog> logs = await dbHelperPostgres.GetAllDataFromAuditLogsTableAsync();
 await dbHelperPostgres.DeleteAllDatabasesAsync();
 await dbHelperPostgres.SplitDataUpInMultipleOwnDatabasesAsync(logs);
-await dbHelperPostgres.InsertTaskGroupDataIntoDatabasesfromCsvFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/All_TaskGroups.csv");
+// await dbHelperPostgres.InsertTaskGroupDataIntoDatabasesfromCsvFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/All_TaskGroups.csv"); // All_TaskGroups.csv
+await dbHelperPostgres.InsertTaskGroupDataIntoDatabasesfromCsvFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AllTaskgroupsWithType_1AndIsNotDeleted.csv"); // AllTaskgroupsWithType_1AndIsNotDeleted.csv
 // await dbHelperPostgres.InsertDataIntoDatabasesAsync(logs);
 
 // // count the amount of unique JSON structures in the Log column

@@ -77,6 +77,7 @@ string connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Pa
 // split data ip in multiple databases in Postgres
 DbHelperPostgresql dbHelperPostgres = new DbHelperPostgresql(connectionStringPostgres, PostgreSqlDbContext.Instance);
 List<AuditLog> logs = await dbHelperPostgres.GetAllDataFromAuditLogsTableAsync();
+await dbHelperPostgres.DeleteAllDatabasesAsync();
 await dbHelperPostgres.SplitDataUpInMultipleOwnDatabasesAsync(logs);
 await dbHelperPostgres.InsertTaskGroupDataIntoDatabasesfromCsvFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/All_TaskGroups.csv");
 // await dbHelperPostgres.InsertDataIntoDatabasesAsync(logs);

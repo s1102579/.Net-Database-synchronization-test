@@ -233,6 +233,40 @@ public class DbHelperPostgresql
         }
     }
 
+    public async Task DeleteAllDatabasesAsync() // Delete all databases method for testing purposes
+    {
+        string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";
+
+        // Create a HashSet with values from 1 to 2000
+        HashSet<int> processedAccountIds = new HashSet<int>(Enumerable.Range(1, 2000));
+
+        foreach (var accountId in processedAccountIds)
+        {
+            string dbName = $"\"AuditLog_{accountId}\"";
+            using (var connection = new NpgsqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+
+                // Check if database exists
+                var command = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = '{dbName.Replace("\"", "")}'", connection);
+                var dbExists = await command.ExecuteScalarAsync() != null;
+
+                if (dbExists)
+                {
+                    // Terminate all connections to the database
+                    command = new NpgsqlCommand($"SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '{dbName.Replace("\"", "")}' AND pid <> pg_backend_pid();", connection);
+                    await command.ExecuteNonQueryAsync();
+
+                    // Drop database
+                    command = new NpgsqlCommand($"DROP DATABASE {dbName}", connection);
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                await connection.CloseAsync();
+            }
+        }
+    }
+
     public async Task InsertTaskGroupDataIntoDatabasesfromCsvFileAsync(string csvFilePath)
     {
         string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;TrustServerCertificate=True;";

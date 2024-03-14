@@ -65,6 +65,113 @@ public class DbHelperPostgresql
             await InsertTaskgroupsIntoDatabaseAsync(group, connectionString);
         }
     }
+    public async Task InsertAuditLogsIntoDatabaseAsync(List<AuditLog> auditLogs)
+    {
+        // Group the audit logs by AccountId
+        var groupedLogs = auditLogs.GroupBy(log => log.AccountId);
+
+
+        foreach (var group in groupedLogs)
+        {
+
+            if (group.Key == null)
+            {
+                continue; // Skip processing if AccountId is null
+            }
+            Console.WriteLine($"Processing account {group.Key}");
+            // Split the audit logs into different tables
+            var pUsers = group.Where(log => log.PUser_Id != null).Select(log => new { PUser_Id = log.PUser_Id }).Distinct();
+            var data = group.Select((log, index) => new { Data_Id = index + 1, Table = log.Table, Data = log.Log });
+            var types = group.Select(log => log.Type).Distinct()
+                     .Select(typeId => new { Type_Id = typeId, Name = "Test" });// name will be null for now
+            Console.WriteLine("Types:");
+            foreach (var type in types)
+            {
+                Console.WriteLine($"Type_Id: {type.Type_Id}, Name: {type.Name}");
+            }
+            var operationPUsers = group.Where(log => log.PUser_Id != null).Select((log, index) => new { PUser_Id = log.PUser_Id, Operation_Id = index + 1 });
+            var operations = group.Where(log => log.PUser_Id != null).Select((log, index) => new { Operation_Id = index + 1, Type_Id = log.Type, Data_Id = index + 1, Created = log.Created }); // remove the Puser is not null stuff later
+
+            // Insert the data into the different tables
+            using (var connection = new NpgsqlConnection($"Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=AuditLog_{group.Key};TrustServerCertificate=True;"))
+            {
+                await connection.OpenAsync();
+
+                await InsertDataAsync(connection, "\"PUser\"", pUsers);
+                await InsertDataAsync(connection, "\"Data\"", data);
+                await InsertDataAsync(connection, "\"Type\"", types);
+                await InsertDataAsync(connection, "\"OperationPUser\"", operationPUsers);
+                await InsertDataAsync(connection, "\"Operation\"", operations);
+
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    private async Task InsertDataAsync<T>(NpgsqlConnection connection, string tableName, IEnumerable<T> data)
+    {
+        using (var writer = connection.BeginBinaryImport($"COPY {tableName} ({string.Join(", ", typeof(T).GetProperties().Select(p => $"\"{p.Name}\""))}) FROM STDIN (FORMAT BINARY)"))
+        {
+            foreach (var item in data)
+            {
+                Console.WriteLine($"Inserting {item} into {tableName}");
+                writer.StartRow();
+
+                foreach (var prop in typeof(T).GetProperties())
+                {
+                    writer.Write(prop.GetValue(item));
+                }
+            }
+
+            await writer.CompleteAsync();
+        }
+    }
+
+    // public async Task InsertAuditLogsIntoDatabaseAsync(List<AuditLog> auditLogs)
+    // {
+    //     // First split up the audit logs into groups based on the AccountId
+
+    //     // Than split up the auditLogs so that it represents the Data in different databases
+    //     // So for each auditlog needs to split in -> PUser, Data, Type, OperationPUser, Operation, TaskGroup
+    //     // PUser table for now will only get the PUser_Id
+    //     // Data table will get the Table and Log
+    //     // Type table will get the Type as Type_Id, name will be null
+    //     // OperationPUser will get the PUser_Id and Operation_Id
+    //     // Operation_Id is a new Id that needs to be created for each auditlog
+
+    //     // Then the data will be Inserted into the different databases with the Binary Import
+    //     // Due note that the data should already be ordened like i have stated above, otherwise binaryimport will not work
+
+    // }
+
+    // private async Task InsertAuditLogsIntoDatabaseAsync(IGrouping<int, AuditLog> group, string connectionString)
+    // {
+    //     string dbName = $"\"AuditLog_{group.Key}\"";
+    //     using (var connection = new NpgsqlConnection(connectionString + $"Database={dbName};"))
+    //     {
+    //         await connection.OpenAsync();
+
+    //         foreach (var auditLog in group)
+    //         {
+    //             // Insert data into the Operations, PUser, Data, Type tables
+    //             // For now, only the PUser_Id is inserted for PUser
+    //             // and only the Type_Id is inserted for Type
+    //             // Don't forget the OperationPUser table
+
+    //             // Replace the following with your actual SQL commands and parameters
+    //             using (var command = new NpgsqlCommand("INSERT INTO Operations VALUES (@PUser_Id, @Type_Id, @Data)", connection))
+    //             {
+    //                 command.Parameters.AddWithValue("PUser_Id", auditLog.PUser_Id);
+    //                 command.Parameters.AddWithValue("Type_Id", auditLog.Type_Id);
+    //                 command.Parameters.AddWithValue("Data", auditLog.Data);
+
+    //                 await command.ExecuteNonQueryAsync();
+    //             }
+    //         }
+
+    //         await connection.CloseAsync();
+    //     }
+    // }
 
     public async Task EmptyDatabaseTableDboLogsAsync()
     {
@@ -81,6 +188,9 @@ public class DbHelperPostgresql
     {
         return await _context.AuditLogs.ToListAsync();
     }
+
+
+
 
     public async Task SplitDataUpInMultipleOwnDatabasesAsync(List<AuditLog> auditLogs)
     {
@@ -239,15 +349,15 @@ public class DbHelperPostgresql
 
             CREATE TABLE ""Operation"" (
                 ""Operation_Id"" integer PRIMARY KEY,
-                ""Type_Id"" integer,
+                ""Type_Id"" smallint,
                 ""Data_Id"" integer,
                 ""Created"" timestamp
             );
 
             CREATE TABLE ""OperationPUser"" (
-                ""PUser_id"" integer,
+                ""PUser_Id"" integer,
                 ""Operation_Id"" integer,
-                PRIMARY KEY (""PUser_id"", ""Operation_Id"")
+                PRIMARY KEY (""PUser_Id"", ""Operation_Id"")
             );
 
             CREATE TABLE ""Data"" (
@@ -257,7 +367,7 @@ public class DbHelperPostgresql
             );
 
             CREATE TABLE ""Type"" (
-                ""Type_Id"" integer PRIMARY KEY,
+                ""Type_Id"" smallint PRIMARY KEY,
                 ""Name"" varchar(128)
             );
 

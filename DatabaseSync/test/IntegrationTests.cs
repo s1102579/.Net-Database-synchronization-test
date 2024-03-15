@@ -58,7 +58,8 @@ public class IntegrationTests : IDisposable
     {
         // Arrange
         await this.EmptyDatabaseAsync();
-        string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv"; // TODO Change to Relative path eventually
+        // string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv"; // TODO Change to Relative path eventually
+        string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData202402.csv"; // TODO Change to Relative path eventually
 
         // Act
         await _dbHelperMSSQL.AddRowsToAuditLogTableWithCSVFileAsync(csvFilePath);
@@ -84,7 +85,7 @@ public class IntegrationTests : IDisposable
 
         // Assert
         Assert.NotNull(fixture.DataChanges);
-        Assert.Equal(1237548, fixture.DataChanges.Count);
+        Assert.Equal(1223818, fixture.DataChanges.Count);
     }
 
     [Fact, TestPriority(3)]
@@ -105,7 +106,7 @@ public class IntegrationTests : IDisposable
             using (var command = new NpgsqlCommand(commandText, connection))
             {
                 long rowCount = (long)(await command.ExecuteScalarAsync() ?? 0);
-                Assert.Equal(1237548, rowCount);
+                Assert.Equal(1223818, rowCount);
             }
             connection.Close();
         }
@@ -139,7 +140,9 @@ public class IntegrationTests : IDisposable
     {
         // Arrange
         await _dbHelperPostgres.EmptyDatabaseTableAuditLogsAsync();
-        string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv"; // TODO Change to Relative path eventually
+        // string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData.csv"; // TODO Change to Relative path eventually
+        string csvFilePath = "/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AuditLogData202402.csv"; // TODO Change to Relative path eventually
+
 
         // Act
         await _dbHelperPostgres.AddRowsToAuditLogTableWithCSVFileExceptForOneDayAsync(csvFilePath);
@@ -151,7 +154,7 @@ public class IntegrationTests : IDisposable
             using (var command = new NpgsqlCommand("SELECT COUNT(*) FROM \"AuditLog_20230101\"", connection))
             {
                 long rowCount = (long) (await command.ExecuteScalarAsync() ?? 0);
-                Assert.Equal(1237548 - 13705, rowCount); // 13705 is the amount of rows with januari 31st 2023
+                Assert.Equal(1223818 - 13705, rowCount); // 13705 is the amount of rows with januari 31st 2023
             }
             connection.Close();
         }
@@ -174,7 +177,7 @@ public class IntegrationTests : IDisposable
             using (var command = new NpgsqlCommand("SELECT COUNT(*) FROM \"AuditLog_20230101\"", connection))
             {
                 long rowCount = (long) (await command.ExecuteScalarAsync() ?? 0);
-                Assert.Equal(1237548, rowCount); // Assert that the postgres database has the same amount of rows as the source database
+                Assert.Equal(1223818, rowCount); // Assert that the postgres database has the same amount of rows as the source database
             }
             connection.Close();
         }

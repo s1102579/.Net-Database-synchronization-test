@@ -11,6 +11,5 @@ namespace DatabaseSync.Entities
         public string Name { get; set; }
         public Guid? Guid { get; set; }
         public string? GlobalID { get; set; } 
-
     }
 }

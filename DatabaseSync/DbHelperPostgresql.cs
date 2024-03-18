@@ -82,7 +82,6 @@ public class DbHelperPostgresql
         }
     }
 
-
     public async Task InsertAuditLogsIntoDatabaseAsync(List<AuditLog> auditLogs)
     {
         // Group the audit logs by AccountId
@@ -160,9 +159,6 @@ public class DbHelperPostgresql
     {
         return await _context.AuditLogs.ToListAsync();
     }
-
-
-
 
     public async Task SplitDataUpInMultipleOwnDatabasesAsync(List<AuditLog> auditLogs)
     {
@@ -495,6 +491,7 @@ public class DbHelperPostgresql
 
         return row;
     }
+
     private async Task InsertTaskgroupsIntoDatabaseAsync(IGrouping<object, DataRow> group, string connectionString)
     {
         string dbName = $"\"AuditLog_{group.Key}\"";
@@ -605,7 +602,6 @@ public class DbHelperPostgresql
     //     }
     // }
 
-
     private async Task InsertDataAsync<T>(NpgsqlConnection connection, string tableName, IEnumerable<T> data)
     {
         using (var writer = connection.BeginBinaryImport($"COPY {tableName} ({string.Join(", ", typeof(T).GetProperties().Select(p => $"\"{p.Name}\""))}) FROM STDIN (FORMAT BINARY)"))
@@ -654,20 +650,20 @@ public class DbHelperPostgresql
         return exists;
     }
 
-private async Task<List<T>> GetNewPUsersAsync<T>(NpgsqlConnection connection, IEnumerable<T> pUsers) where T : class
-{
-    var newPUsers = new List<T>();
-
-    foreach (var pUser in pUsers)
+    private async Task<List<T>> GetNewPUsersAsync<T>(NpgsqlConnection connection, IEnumerable<T> pUsers) where T : class
     {
-        if (!await PUserExistsAsync(connection, pUser))
-        {
-            newPUsers.Add(pUser);
-        }
-    }
+        var newPUsers = new List<T>();
 
-    return newPUsers;
-}
+        foreach (var pUser in pUsers)
+        {
+            if (!await PUserExistsAsync(connection, pUser))
+            {
+                newPUsers.Add(pUser);
+            }
+        }
+
+        return newPUsers;
+    }
 
 
     // public async Task InsertDataIntoDatabasesAsync(List<AuditLog> auditLogs)

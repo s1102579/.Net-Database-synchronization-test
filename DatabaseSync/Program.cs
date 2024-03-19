@@ -79,9 +79,9 @@ DbHelperPostgresql dbHelperPostgres = new DbHelperPostgresql(connectionStringPos
 List<AuditLog> logs = await dbHelperPostgres.GetAllDataFromAuditLogsTableAsync();
 await dbHelperPostgres.DeleteAllDatabasesAsync();
 await dbHelperPostgres.SplitDataUpInMultipleOwnDatabasesAsync(logs);
-// await dbHelperPostgres.InsertTaskGroupDataIntoDatabasesfromCsvFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/All_TaskGroups.csv"); // All_TaskGroups.csv
-await dbHelperPostgres.InsertPUserDataIntoDatabasesfromCsvFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/PUsers.csv"); // PUsers.csv
-await dbHelperPostgres.InsertTaskGroupDataIntoDatabasesfromCsvFileAsync("/Users/timdekievit/Documents/Projects/Data-Sync-test/.Net-Database-synchronization-test/DatabaseSync/assets/AllTaskgroupsWithType_1AndIsNotDeleted.csv"); // AllTaskgroupsWithType_1AndIsNotDeleted.csv
+// await dbHelperPostgres.InsertTaskGroupDataIntoDatabasesfromCsvFileAsync("assets/All_TaskGroups.csv"); // All_TaskGroups.csv
+await dbHelperPostgres.InsertPUserDataIntoDatabasesfromCsvFileAsync("assets/PUsers.csv"); // PUsers.csv
+await dbHelperPostgres.InsertTaskGroupDataIntoDatabasesfromCsvFileAsync("assets/AllTaskgroupsWithType_1AndIsNotDeleted.csv"); // AllTaskgroupsWithType_1AndIsNotDeleted.csv
 await dbHelperPostgres.InsertAuditLogsIntoDatabaseAsync(logs);
 // await dbHelperPostgres.InsertDataIntoDatabasesAsync(logs);
 

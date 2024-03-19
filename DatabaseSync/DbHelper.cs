@@ -143,9 +143,12 @@ public class DbHelper
             }
         }
 
+        Console.WriteLine("Rows added to DataTable: " + auditLogs.Rows.Count);
+
         using (var sqlBulk = new SqlBulkCopy("Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;TrustServerCertificate=True;")) // temp hardcode connection string
         {
             sqlBulk.DestinationTableName = "AuditLog_20230101";
+            sqlBulk.BulkCopyTimeout = 600;
             await sqlBulk.WriteToServerAsync(auditLogs);
         }
     }

@@ -143,6 +143,7 @@ public class DbHelper
 
         using (var sqlBulk = new SqlBulkCopy("Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;TrustServerCertificate=True;")) // temp hardcode connection string
         {
+            sqlBulk.BulkCopyTimeout = 3600;
             sqlBulk.DestinationTableName = "AuditLog_20230101";
             await sqlBulk.WriteToServerAsync(auditLogs);
         }

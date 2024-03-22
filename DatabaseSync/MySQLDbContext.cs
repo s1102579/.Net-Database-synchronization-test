@@ -16,7 +16,7 @@ public class MySQLDbContext : DbContext
             if (_instance == null)
             {
                 var optionsBuilder = new DbContextOptionsBuilder<MySQLDbContext>();
-                optionsBuilder.UseMySql("Server=localhost;Database=My_SQL_SPEED_TEST;User Id=root;Password=Your_Strong_Password;AllowLoadLocalInfile=true;", new MySqlServerVersion(new Version(8, 0, 32)));
+                optionsBuilder.UseMySql("Server=localhost;Database=My_SQL_SPEED_TEST;User Id=root;Password=Your_Strong_Password;AllowLoadLocalInfile=true;AllowZeroDateTime=true;ConvertZeroDateTime=true;", new MySqlServerVersion(new Version(8, 0, 32)));
                 _instance = new MySQLDbContext(optionsBuilder.Options);
             }
             return _instance;
@@ -27,7 +27,7 @@ public class MySQLDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseMySql("Server=localhost;Database=My_SQL_SPEED_TEST;User Id=root;Password=Your_Strong_Password;AllowLoadLocalInfile=true;", new MySqlServerVersion(new Version(8, 0, 32)));
+        optionsBuilder.UseMySql("Server=localhost;Database=My_SQL_SPEED_TEST;User Id=root;Password=Your_Strong_Password;AllowLoadLocalInfile=true;AllowZeroDateTime=true;ConvertZeroDateTime=true;", new MySqlServerVersion(new Version(8, 0, 32)));
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

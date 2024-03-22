@@ -26,10 +26,10 @@ public class DbHelperPostgresql
         await _context.SaveChangesAsync();
     }
 
-    // public async Task InsertListOfAuditLogDataAsync(List<AuditLog> auditLogs) // uses bulkinsert
-    // {
-    //     await _context.BulkInsertAsync(auditLogs);
-    // }
+    public async Task<List<AuditLog>> GetDataFromAuditLogsTableAsync()
+    {
+        return await _context.AuditLogs.ToListAsync();
+    }
 
     public async Task InsertListOfAuditLogDataAsync(List<AuditLog> auditLogs) // uses binary import
     {
@@ -128,7 +128,7 @@ public class DbHelperPostgresql
                 var log = csv.GetField(5);
                 var created = csv.GetField(6);
 
-                Console.WriteLine(accountId + " " + pUserId + " " + impersonatedUserId + " " + type + " " + table + " " + log + " " + created);
+                // Console.WriteLine(accountId + " " + pUserId + " " + impersonatedUserId + " " + type + " " + table + " " + log + " " + created);
 
 
                 var row = auditLogs.NewRow();

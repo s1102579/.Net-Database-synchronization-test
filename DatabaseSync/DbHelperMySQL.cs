@@ -5,8 +5,6 @@ using CsvHelper.Configuration;
 using DatabaseSync.Entities;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
-using Npgsql;
-using Npgsql.Replication;
 
 public class DbHelperMySQL
 {
@@ -18,6 +16,10 @@ public class DbHelperMySQL
         _context = context;
     }
 
+    public async Task<List<AuditLog>> GetDataFromAuditLogsTableAsync()
+    {
+        return await _context.AuditLogs.ToListAsync();
+    }
 
     public async Task EmptyDatabaseTableDboLogsAsync()
     {
@@ -31,7 +33,7 @@ public class DbHelperMySQL
     }
     public async Task AddRowsToAuditLogTableWithCSVFileAsync(string path)
     {
-        using (var conn = new MySqlConnection("Server=localhost;Database=My_SQL_SPEED_TEST;User Id=root;Password=Your_Strong_Password;AllowLoadLocalInfile=true;"))
+        using (var conn = new MySqlConnection("Server=localhost;Database=My_SQL_SPEED_TEST;User Id=root;Password=Your_Strong_Password;AllowLoadLocalInfile=true;AllowZeroDateTime=true;ConvertZeroDateTime=true;"))
         {
             await conn.OpenAsync();
 

@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 
 public class DbHelperTests
 {
-    private readonly string _testConnectionString = "Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
+    private readonly string _testConnectionString = "Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;";
     private readonly DbHelper _dbHelper;
     private readonly SqlServerDbContext _dbContext;
     private readonly ITestOutputHelper _output;

@@ -22,7 +22,7 @@ public class DatabaseCollection : ICollectionFixture<DatabaseFixture>
 public class IntegrationTests : IDisposable
 {
     // Set up any resources needed for the tests
-    private readonly string _connectionStringMSSQL = "Server=localhost,1434;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;TrustServerCertificate=True;";
+    private readonly string _connectionStringMSSQL = "Server=localhost,1433;Database=MSSQL_LOG_TEST;User Id=sa;Password=Your_Strong_Password;TrustServerCertificate=True;";
     private readonly string _connectionStringPostgres = "Host=localhost;Port=5432;Username=postgres;Password=Your_Strong_Password;Database=postgres_sync_database;";
     private readonly DbHelper _dbHelperMSSQL;
     private readonly DbHelperPostgresql _dbHelperPostgres;
